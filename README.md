@@ -191,7 +191,7 @@ ok, result = run_enhanced_inference(
 
 ```text
 change_detection/
-├── 变化检测/                     # 核心变化检测模块（张硕岐）
+├── 变化检测/                     # 核心变化检测模块
 │   ├── src/
 │   │   ├── change_detection.py          # 推理引擎、CLI、交互菜单
 │   │   ├── change_detection_ui.py       # PyQt5 图形界面（主入口）
@@ -203,7 +203,7 @@ change_detection/
 │   ├── 模块说明.md                       # 模块功能文档
 │   └── 函数调用说明.md                   # API 文档
 │
-├── batch/                          # 批量处理模块（李昌辉）
+├── batch/                          # 批量处理模块
 │   ├── 01_源代码/                       # batch_controller / li_batch_api / report_generator / result_statistics
 │   ├── 02_接口说明/
 │   ├── 03_输入输出样例/
@@ -215,7 +215,7 @@ change_detection/
 │   ├── classify_vectorize.py
 │   └── 地物分类与栅格矢量化模块说明.txt
 │
-├── thematic_map/                   # 专题图模块（贾思雨）
+├── thematic_map/                   # 专题图模块
 │   ├── mapper.py
 │   └── 专题图模块说明.txt
 │
