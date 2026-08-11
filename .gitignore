@@ -1,6 +1,33 @@
+# Python
 __pycache__/
-*.log
 *.pyc
 *.pyo
+
+# IDE
+.idea/
+
+# Logs
+*.log
+
+# Build artifacts
+build/
+dist/
+
+# Generated output directories
+batch_output/
+interface_output/
+output/
+
+# Large binary output files in source trees
+变化检测/src/classify.tif/
+变化检测/src/classify.udbx
+变化检测/src/classify.udd
+变化检测/src/build/
+变化检测/src/*.spec
+classification/classify_result.tif/
+classification/classify_result.udbx
+classification/classify_result.udd
+
+# OS
 .DS_Store
 Thumbs.db

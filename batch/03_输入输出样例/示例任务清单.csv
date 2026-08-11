@@ -1,0 +1,3 @@
+﻿task_id,before_image,after_image,model_name,result_type,gpu_id,output_path,max_retry,enabled
+task_001,D:/supermap安装包/resources/supermap-iobjectspy-resources_ml-2025u1/resources_ml/example_data/inference/cd_image1.tif,,landcover,udbx,0,D:/项目根目录/batch_output/results/task_001.udbx,1,true
+task_002,D:/supermap安装包/resources/supermap-iobjectspy-resources_ml-2025u1/resources_ml/example_data/inference/cd_image1.tif,,landcover,udbx,0,D:/项目根目录/batch_output/results/task_002.udbx,1,true

@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "tested_at": "2026-08-09T01:23:49+08:00",
+  "python": "C:\\Users\\礼昌\\Documents\\大创\\.venv_portable_test\\Scripts\\python.exe",
+  "public_function_import_test": true,
+  "function_signatures_unchanged": true,
+  "function_signatures_match_word_document": true,
+  "generate_statistics": {
+    "passed": true,
+    "success_count": 2,
+    "failed_count": 1,
+    "excel_generated": true,
+    "excel_engine": "openpyxl",
+    "excel_visual_qa": "Excel COM打开并逐工作表截图检查通过（5表）"
+  },
+  "generate_report": {
+    "passed": true,
+    "chart_count": 4,
+    "word_generated": true,
+    "word_page_count": 7,
+    "pdf_generated": true,
+    "pdf_page_count": 7
+  },
+  "no_word_fallback": {
+    "passed": true,
+    "word_generated": true,
+    "pdf_generated": false,
+    "pdf_path": null,
+    "warnings_present": true
+  },
+  "run_full_pipeline": {
+    "passed": true,
+    "statistics_passed": true,
+    "report_passed": true,
+    "chart_count": 4,
+    "word_generated": true,
+    "pdf_generated": true
+  },
+  "progress_event_count": 137,
+  "node_or_artifact_runtime_invoked": false
+}

@@ -1,0 +1,49 @@
+{
+  "module": "li_batch_api",
+  "package_version": "V1.1 免ArtifactTool版",
+  "public_functions": {
+    "run_batch_detection": "def run_batch_detection(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, real_mode: bool=False, batch_controller_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+    "generate_statistics": "def generate_statistics(status_table_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, result_root: str | os.PathLike[str] | None=None, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+    "generate_report": "def generate_report(excel_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], report_title: str='批量变化检测统计报告', progress_callback: ProgressCallback | None=None, *, stats_csv_path: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, reliability_status_path: str | os.PathLike[str] | None=None, reliability_evidence_path: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+    "run_full_pipeline": "def run_full_pipeline(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, report_title: str='批量变化检测统计报告', real_mode: bool=False, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, batch_controller_script: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]"
+  },
+  "signature_checks": {
+    "run_batch_detection": {
+      "current": "def run_batch_detection(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, real_mode: bool=False, batch_controller_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "v1_0": "def run_batch_detection(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, real_mode: bool=False, batch_controller_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "unchanged_from_v1_0": true,
+      "present_in_word_document": true
+    },
+    "generate_statistics": {
+      "current": "def generate_statistics(status_table_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, result_root: str | os.PathLike[str] | None=None, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "v1_0": "def generate_statistics(status_table_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, result_root: str | os.PathLike[str] | None=None, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "unchanged_from_v1_0": true,
+      "present_in_word_document": true
+    },
+    "generate_report": {
+      "current": "def generate_report(excel_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], report_title: str='批量变化检测统计报告', progress_callback: ProgressCallback | None=None, *, stats_csv_path: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, reliability_status_path: str | os.PathLike[str] | None=None, reliability_evidence_path: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "v1_0": "def generate_report(excel_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], report_title: str='批量变化检测统计报告', progress_callback: ProgressCallback | None=None, *, stats_csv_path: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, reliability_status_path: str | os.PathLike[str] | None=None, reliability_evidence_path: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "unchanged_from_v1_0": true,
+      "present_in_word_document": true
+    },
+    "run_full_pipeline": {
+      "current": "def run_full_pipeline(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, report_title: str='批量变化检测统计报告', real_mode: bool=False, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, batch_controller_script: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "v1_0": "def run_full_pipeline(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, report_title: str='批量变化检测统计报告', real_mode: bool=False, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, batch_controller_script: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+      "unchanged_from_v1_0": true,
+      "present_in_word_document": true
+    }
+  },
+  "all_signatures_unchanged": true,
+  "all_signatures_present_in_word_document": true,
+  "progress_fields": [
+    "stage",
+    "task_id",
+    "current",
+    "total",
+    "status",
+    "progress_percent",
+    "message"
+  ],
+  "return_value_policy": "公开函数只返回由dict/list/str/bool/int/float/None组成的普通对象；路径统一转为str。",
+  "threading": "耗时函数应在PyQt工作线程执行；回调只传数据，不操作UI控件。"
+}

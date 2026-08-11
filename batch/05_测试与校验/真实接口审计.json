@@ -1,0 +1,2463 @@
+{
+  "package_version": "V1.1 免ArtifactTool版",
+  "generated_at": "2026-08-09T01:23:49+08:00",
+  "runtime_dependency_chain": {
+    "statistics": "generate_statistics -> result_statistics.py -> build_workbook_openpyxl -> openpyxl -> XLSX",
+    "charts": "generate_report -> build_charts_internal -> matplotlib -> 4 PNG",
+    "word": "generate_report -> build_docx -> python-docx -> DOCX",
+    "pdf_optional": "generate_report -> convert_word_to_pdf_optional -> win32com.client + Microsoft Word -> PDF"
+  },
+  "files": [
+    {
+      "file": "01_源代码/batch_controller.py",
+      "sha256": "0b5d32625e5f2602f054aaa83427acc15e89d2c58193698c776426b66b4f6b5d",
+      "module_docstring": "李昌辉批量处理模块 v1：真实单次变化检测串行调度。",
+      "functions": [
+        {
+          "name": "append_history",
+          "line": 62,
+          "end_line": 64,
+          "signature": "def append_history(current: object, event: str) -> str",
+          "parameters": [
+            {
+              "name": "current",
+              "kind": "positional_or_keyword",
+              "type": "object",
+              "default": null
+            },
+            {
+              "name": "event",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "str",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "now_text",
+          "line": 67,
+          "end_line": 68,
+          "signature": "def now_text() -> str",
+          "parameters": [],
+          "return_annotation": "str",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "is_enabled",
+          "line": 71,
+          "end_line": 72,
+          "signature": "def is_enabled(value: str) -> bool",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "bool",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "resolve_path",
+          "line": 75,
+          "end_line": 77,
+          "signature": "def resolve_path(base_dir: Path, value: str) -> Path",
+          "parameters": [
+            {
+              "name": "base_dir",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "load_config",
+          "line": 80,
+          "end_line": 87,
+          "signature": "def load_config(config_path: Path) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "config_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [
+            "ValueError('batch_config.json 顶层必须是JSON对象')",
+            "ValueError('配置缺少 zhang_module_work_copy')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "load_tasks",
+          "line": 90,
+          "end_line": 104,
+          "signature": "def load_tasks(csv_path: Path) -> List[Dict[str, str]]",
+          "parameters": [
+            {
+              "name": "csv_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "List[Dict[str, str]]",
+          "explicit_raises": [
+            "ValueError('task_id不能为空')",
+            "ValueError('task_id不能重复')",
+            "ValueError(f\"任务清单缺少字段：{', '.join(missing)}\")"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "load_previous_status",
+          "line": 107,
+          "end_line": 112,
+          "signature": "def load_previous_status(path: Path) -> Dict[str, Dict[str, str]]",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Dict[str, str]]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "build_logger",
+          "line": 142,
+          "end_line": 143,
+          "signature": "def build_logger(log_path: Path, append: bool=False) -> DirectLogger",
+          "parameters": [
+            {
+              "name": "log_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "append",
+              "kind": "positional_or_keyword",
+              "type": "bool",
+              "default": "False"
+            }
+          ],
+          "return_annotation": "DirectLogger",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "validate_task",
+          "line": 146,
+          "end_line": 153,
+          "signature": "def validate_task(task: Dict[str, str]) -> None",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [
+            "ValueError('max_retry不能小于0')",
+            "ValueError(f'{field}不能为空')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "output_info",
+          "line": 156,
+          "end_line": 159,
+          "signature": "def output_info(output_path: str) -> Tuple[bool, int]",
+          "parameters": [
+            {
+              "name": "output_path",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Tuple[bool, int]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "truncate_error",
+          "line": 162,
+          "end_line": 164,
+          "signature": "def truncate_error(exc: BaseException) -> str",
+          "parameters": [
+            {
+              "name": "exc",
+              "kind": "positional_or_keyword",
+              "type": "BaseException",
+              "default": null
+            }
+          ],
+          "return_annotation": "str",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "pending_row",
+          "line": 167,
+          "end_line": 186,
+          "signature": "def pending_row(task: Dict[str, str]) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "write_status",
+          "line": 189,
+          "end_line": 196,
+          "signature": "def write_status(path: Path, rows: List[Dict[str, Any]]) -> None",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "rows",
+              "kind": "positional_or_keyword",
+              "type": "List[Dict[str, Any]]",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "execute_task",
+          "line": 199,
+          "end_line": 319,
+          "signature": "def execute_task(task: Dict[str, str], config: Dict[str, Any], row: Dict[str, Any], all_rows: List[Dict[str, Any]], status_path: Path, logger: DirectLogger) -> None",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "config",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "row",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "all_rows",
+              "kind": "positional_or_keyword",
+              "type": "List[Dict[str, Any]]",
+              "default": null
+            },
+            {
+              "name": "status_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "DirectLogger",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [
+            "ControlledTestFailure(f'可靠性验收受控失败：task_id={task_id}, attempt={attempt}, 计划失败次数={controlled_failures}')",
+            "ValueError('test_failures_before_success不能小于0')"
+          ],
+          "docstring": "执行单项任务；每次状态和attempt变化后立即原子写入CSV。"
+        },
+        {
+          "name": "write_summary",
+          "line": 322,
+          "end_line": 324,
+          "signature": "def write_summary(path: Path, summary: Dict[str, Any]) -> None",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "summary",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "run_batch",
+          "line": 327,
+          "end_line": 496,
+          "signature": "def run_batch(config_path: Path, tasks_path: Path | None=None, real_mode: bool=False, log_path: Path | None=None, status_path: Path | None=None, summary_path: Path | None=None, interrupt_after_successes: int | None=None) -> Tuple[int, Dict[str, Any]]",
+          "parameters": [
+            {
+              "name": "config_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "tasks_path",
+              "kind": "positional_or_keyword",
+              "type": "Path | None",
+              "default": "None"
+            },
+            {
+              "name": "real_mode",
+              "kind": "positional_or_keyword",
+              "type": "bool",
+              "default": "False"
+            },
+            {
+              "name": "log_path",
+              "kind": "positional_or_keyword",
+              "type": "Path | None",
+              "default": "None"
+            },
+            {
+              "name": "status_path",
+              "kind": "positional_or_keyword",
+              "type": "Path | None",
+              "default": "None"
+            },
+            {
+              "name": "summary_path",
+              "kind": "positional_or_keyword",
+              "type": "Path | None",
+              "default": "None"
+            },
+            {
+              "name": "interrupt_after_successes",
+              "kind": "positional_or_keyword",
+              "type": "int | None",
+              "default": "None"
+            }
+          ],
+          "return_annotation": "Tuple[int, Dict[str, Any]]",
+          "explicit_raises": [
+            "ControlledInterruption(f'状态已持久化，按测试要求在{session_successes}个任务成功后中断')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "parse_args",
+          "line": 499,
+          "end_line": 517,
+          "signature": "def parse_args() -> argparse.Namespace",
+          "parameters": [],
+          "return_annotation": "argparse.Namespace",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "main",
+          "line": 520,
+          "end_line": 538,
+          "signature": "def main() -> int",
+          "parameters": [],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": null
+        }
+      ],
+      "classes": [
+        {
+          "name": "ControlledTestFailure",
+          "line": 54,
+          "docstring": "仅在可靠性验收配置显式启用时使用的受控失败。",
+          "methods": []
+        },
+        {
+          "name": "ControlledInterruption",
+          "line": 58,
+          "docstring": "状态已落盘后用于模拟批次中断。",
+          "methods": []
+        },
+        {
+          "name": "DirectLogger",
+          "line": 115,
+          "docstring": "不依赖全局logging状态的直接文件日志器，支持续跑追加。",
+          "methods": [
+            {
+              "name": "__init__",
+              "line": 118,
+              "end_line": 124,
+              "signature": "def __init__(self, log_path: Path, append: bool=False)",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "log_path",
+                  "kind": "positional_or_keyword",
+                  "type": "Path",
+                  "default": null
+                },
+                {
+                  "name": "append",
+                  "kind": "positional_or_keyword",
+                  "type": "bool",
+                  "default": "False"
+                }
+              ],
+              "return_annotation": null,
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "_emit",
+              "line": 126,
+              "end_line": 133,
+              "signature": "def _emit(self, level: str, message: str, *args: object) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "level",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                },
+                {
+                  "name": "args",
+                  "kind": "var_positional",
+                  "type": "object",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "info",
+              "line": 135,
+              "end_line": 136,
+              "signature": "def info(self, message: str, *args: object) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                },
+                {
+                  "name": "args",
+                  "kind": "var_positional",
+                  "type": "object",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "error",
+              "line": 138,
+              "end_line": 139,
+              "signature": "def error(self, message: str, *args: object) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                },
+                {
+                  "name": "args",
+                  "kind": "var_positional",
+                  "type": "object",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            }
+          ]
+        }
+      ],
+      "audit_note": "explicit_raises仅列源码中的显式raise；文件IO、导入和第三方库还可能抛出标准异常。"
+    },
+    {
+      "file": "01_源代码/zhang_change_adapter.py",
+      "sha256": "23dfde24127cf4e31dd17eeb0b5c55c667c319dac634c7d098cc21f6aac5dd0e",
+      "module_docstring": "张硕岐单次变化检测入口适配器（含核心控制台输出捕获）。",
+      "functions": [
+        {
+          "name": "_load_change_detection",
+          "line": 19,
+          "end_line": 37,
+          "signature": "def _load_change_detection(module_dir: Path) -> ModuleType",
+          "parameters": [
+            {
+              "name": "module_dir",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "ModuleType",
+          "explicit_raises": [
+            "AttributeError('change_detection.py 未提供可调用的 run_single_inference')",
+            "FileNotFoundError(f'张硕岐核心程序不存在：{source}')",
+            "ImportError(f'无法创建模块导入规范：{source}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_nonempty_file",
+          "line": 40,
+          "end_line": 41,
+          "signature": "def _nonempty_file(path: Path) -> bool",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "bool",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "run_single_task",
+          "line": 44,
+          "end_line": 104,
+          "signature": "def run_single_task(task: Dict[str, str], config: Dict[str, Any]) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "config",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [
+            "FileNotFoundError(f'前时相影像不存在：{before}')",
+            "FileNotFoundError(f'后时相影像不存在：{after}')",
+            "RuntimeError('张硕岐 run_single_inference 返回 False' + (f'\\n--- 核心输出 ---\\n{core_output}' if core_output else ''))",
+            "RuntimeError(f'推理返回成功，但输出不存在或为空：{output}')",
+            "ValueError(f'不支持的输出格式：{output_format}')",
+            "ValueError(f'前时相影像为空：{before}')",
+            "ValueError(f'后时相影像为空：{after}')",
+            "ValueError(f'输出扩展名与格式不符：result_type={output_format}, output={output}')"
+          ],
+          "docstring": "调用现有入口；捕获其打印内容，使被核心转换为False的错误可进入批量日志。"
+        },
+        {
+          "name": "inspect_interface",
+          "line": 107,
+          "end_line": 113,
+          "signature": "def inspect_interface(module_dir: str) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "module_dir",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        }
+      ],
+      "classes": [],
+      "audit_note": "explicit_raises仅列源码中的显式raise；文件IO、导入和第三方库还可能抛出标准异常。"
+    },
+    {
+      "file": "01_源代码/result_statistics.py",
+      "sha256": "38733ae673b6eb409d098e6f9fc70a8d680e981cdfc2584614745cb37a4341e7",
+      "module_docstring": "李昌辉变化检测结果统计与Excel汇总模块。\n\n仅只读打开状态表和栅格；单项统计异常不会中断后续任务。",
+      "functions": [
+        {
+          "name": "parse_bool",
+          "line": 126,
+          "end_line": 127,
+          "signature": "def parse_bool(value: Any) -> bool",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "Any",
+              "default": null
+            }
+          ],
+          "return_annotation": "bool",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "parse_int",
+          "line": 130,
+          "end_line": 134,
+          "signature": "def parse_int(value: Any, default: int=0) -> int",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "Any",
+              "default": null
+            },
+            {
+              "name": "default",
+              "kind": "positional_or_keyword",
+              "type": "int",
+              "default": "0"
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "parse_float",
+          "line": 137,
+          "end_line": 141,
+          "signature": "def parse_float(value: Any, default: float=0.0) -> float",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "Any",
+              "default": null
+            },
+            {
+              "name": "default",
+              "kind": "positional_or_keyword",
+              "type": "float",
+              "default": "0.0"
+            }
+          ],
+          "return_annotation": "float",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "load_status_tables",
+          "line": 144,
+          "end_line": 159,
+          "signature": "def load_status_tables(paths: Sequence[Path]) -> List[Dict[str, str]]",
+          "parameters": [
+            {
+              "name": "paths",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Path]",
+              "default": null
+            }
+          ],
+          "return_annotation": "List[Dict[str, str]]",
+          "explicit_raises": [
+            "FileNotFoundError(f'状态表不存在：{path}')",
+            "ValueError(f'状态表缺少字段 {missing}：{path}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "resolve_output_path",
+          "line": 162,
+          "end_line": 167,
+          "signature": "def resolve_output_path(task: Dict[str, str], result_root: Path) -> Path",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "result_root",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [
+            "ValueError('output_path为空')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "retry_count",
+          "line": 170,
+          "end_line": 174,
+          "signature": "def retry_count(task: Dict[str, str]) -> int",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "is_projected_meter_crs",
+          "line": 177,
+          "end_line": 192,
+          "signature": "def is_projected_meter_crs(crs: Any) -> Tuple[bool, str]",
+          "parameters": [
+            {
+              "name": "crs",
+              "kind": "positional_or_keyword",
+              "type": "Any",
+              "default": null
+            }
+          ],
+          "return_annotation": "Tuple[bool, str]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "valid_mask_for_band",
+          "line": 195,
+          "end_line": 209,
+          "signature": "def valid_mask_for_band(band: np.ndarray, read_mask: np.ndarray, nodata: Optional[float]) -> np.ndarray",
+          "parameters": [
+            {
+              "name": "band",
+              "kind": "positional_or_keyword",
+              "type": "np.ndarray",
+              "default": null
+            },
+            {
+              "name": "read_mask",
+              "kind": "positional_or_keyword",
+              "type": "np.ndarray",
+              "default": null
+            },
+            {
+              "name": "nodata",
+              "kind": "positional_or_keyword",
+              "type": "Optional[float]",
+              "default": null
+            }
+          ],
+          "return_annotation": "np.ndarray",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "statistics_placeholder",
+          "line": 212,
+          "end_line": 227,
+          "signature": "def statistics_placeholder(task: Dict[str, str], output_path: str, status_text: str, error_text: str) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "output_path",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "status_text",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "error_text",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "compute_raster_statistics",
+          "line": 230,
+          "end_line": 346,
+          "signature": "def compute_raster_statistics(task: Dict[str, str], output_path: Path, logger: RunLogger) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "output_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "RunLogger",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [
+            "RuntimeError('值0、值1和其他值数量之和不等于有效像元数')",
+            "RuntimeError('分类像元计数出现负值')",
+            "RuntimeError('栅格没有波段')",
+            "RuntimeError(f'完整读取像元数不符：{all_data.size} != {expected_size}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "task_detail_row",
+          "line": 349,
+          "end_line": 376,
+          "signature": "def task_detail_row(task: Dict[str, str], result_root: Path) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "result_root",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "failure_row",
+          "line": 379,
+          "end_line": 396,
+          "signature": "def failure_row(task: Dict[str, str], output_path: str, error_type: str, error_message: str, statistics_status: str, statistics_error: str) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, str]",
+              "default": null
+            },
+            {
+              "name": "output_path",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "error_type",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "error_message",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "statistics_status",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "statistics_error",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "field_definitions",
+          "line": 399,
+          "end_line": 454,
+          "signature": "def field_definitions() -> List[Dict[str, str]]",
+          "parameters": [],
+          "return_annotation": "List[Dict[str, str]]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "dict_rows_to_matrix",
+          "line": 457,
+          "end_line": 460,
+          "signature": "def dict_rows_to_matrix(rows: Sequence[Dict[str, Any]], headers: Sequence[str]) -> List[List[Any]]",
+          "parameters": [
+            {
+              "name": "rows",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Dict[str, Any]]",
+              "default": null
+            },
+            {
+              "name": "headers",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[str]",
+              "default": null
+            }
+          ],
+          "return_annotation": "List[List[Any]]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "write_statistics_csv",
+          "line": 463,
+          "end_line": 471,
+          "signature": "def write_statistics_csv(path: Path, all_rows: Sequence[Dict[str, Any]]) -> None",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "all_rows",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Dict[str, Any]]",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "build_workbook_openpyxl",
+          "line": 474,
+          "end_line": 742,
+          "signature": "def build_workbook_openpyxl(payload: Dict[str, Any], output_path: Path, qa_dir: Path, logger: RunLogger) -> Dict[str, Any]",
+          "parameters": [
+            {
+              "name": "payload",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "output_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "qa_dir",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "RunLogger",
+              "default": null
+            }
+          ],
+          "return_annotation": "Dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": "使用普通Python库生成统计工作簿并执行结构性复验。"
+        },
+        {
+          "name": "make_report",
+          "line": 745,
+          "end_line": 835,
+          "signature": "def make_report(path: Path, source_tables: Sequence[Path], tasks: Sequence[Dict[str, str]], stats: Sequence[Dict[str, Any]], failures: Sequence[Dict[str, Any]], overview: Dict[str, Any], qa: Dict[str, Any], manual_check: Dict[str, Any], xlsx_path: Path, csv_path: Path, log_path: Path) -> None",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "source_tables",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Path]",
+              "default": null
+            },
+            {
+              "name": "tasks",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Dict[str, str]]",
+              "default": null
+            },
+            {
+              "name": "stats",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Dict[str, Any]]",
+              "default": null
+            },
+            {
+              "name": "failures",
+              "kind": "positional_or_keyword",
+              "type": "Sequence[Dict[str, Any]]",
+              "default": null
+            },
+            {
+              "name": "overview",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "qa",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "manual_check",
+              "kind": "positional_or_keyword",
+              "type": "Dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "xlsx_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "csv_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "log_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "build_parser",
+          "line": 838,
+          "end_line": 860,
+          "signature": "def build_parser() -> argparse.ArgumentParser",
+          "parameters": [],
+          "return_annotation": "argparse.ArgumentParser",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "main",
+          "line": 863,
+          "end_line": 1167,
+          "signature": "def main() -> int",
+          "parameters": [],
+          "return_annotation": "int",
+          "explicit_raises": [
+            "RuntimeError(f'Excel QA未通过：{qa}')"
+          ],
+          "docstring": null
+        }
+      ],
+      "classes": [
+        {
+          "name": "RunLogger",
+          "line": 98,
+          "docstring": "避免第三方库修改全局logging配置的直接UTF-8日志器。",
+          "methods": [
+            {
+              "name": "__init__",
+              "line": 101,
+              "end_line": 104,
+              "signature": "def __init__(self, path: Path)",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "path",
+                  "kind": "positional_or_keyword",
+                  "type": "Path",
+                  "default": null
+                }
+              ],
+              "return_annotation": null,
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "_write",
+              "line": 106,
+              "end_line": 114,
+              "signature": "def _write(self, level: str, message: str) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "level",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "info",
+              "line": 116,
+              "end_line": 117,
+              "signature": "def info(self, message: str) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "warning",
+              "line": 119,
+              "end_line": 120,
+              "signature": "def warning(self, message: str) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            },
+            {
+              "name": "error",
+              "line": 122,
+              "end_line": 123,
+              "signature": "def error(self, message: str) -> None",
+              "parameters": [
+                {
+                  "name": "self",
+                  "kind": "positional_or_keyword",
+                  "type": null,
+                  "default": null
+                },
+                {
+                  "name": "message",
+                  "kind": "positional_or_keyword",
+                  "type": "str",
+                  "default": null
+                }
+              ],
+              "return_annotation": "None",
+              "explicit_raises": [],
+              "docstring": null
+            }
+          ]
+        }
+      ],
+      "audit_note": "explicit_raises仅列源码中的显式raise；文件IO、导入和第三方库还可能抛出标准异常。"
+    },
+    {
+      "file": "01_源代码/report_generator.py",
+      "sha256": "ff75b9de9dc94bd727f06fbbb2dd24bfaa523279bbceb47c6e6eda09faecb3cd",
+      "module_docstring": "批量变化检测图表及Word/PDF自动报告生成器。\n\nExcel读取、图表和Word生成均由普通Python库完成；Microsoft Word仅用于\n可选的PDF转换。所有Excel、CSV与既有成果均以只读方式访问。",
+      "functions": [
+        {
+          "name": "configure_logging",
+          "line": 56,
+          "end_line": 73,
+          "signature": "def configure_logging(log_path: Path, *, reset: bool=False) -> logging.Logger",
+          "parameters": [
+            {
+              "name": "log_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "reset",
+              "kind": "keyword_only",
+              "type": "bool",
+              "default": "False"
+            }
+          ],
+          "return_annotation": "logging.Logger",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "read_csv_rows",
+          "line": 76,
+          "end_line": 78,
+          "signature": "def read_csv_rows(path: Path) -> list[dict[str, str]]",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "list[dict[str, str]]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "as_int",
+          "line": 81,
+          "end_line": 84,
+          "signature": "def as_int(value: Any, default: int=0) -> int",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "Any",
+              "default": null
+            },
+            {
+              "name": "default",
+              "kind": "positional_or_keyword",
+              "type": "int",
+              "default": "0"
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "as_float",
+          "line": 87,
+          "end_line": 90,
+          "signature": "def as_float(value: Any, default: float=0.0) -> float",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "Any",
+              "default": null
+            },
+            {
+              "name": "default",
+              "kind": "positional_or_keyword",
+              "type": "float",
+              "default": "0.0"
+            }
+          ],
+          "return_annotation": "float",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "run_process",
+          "line": 93,
+          "end_line": 121,
+          "signature": "def run_process(command: list[str], logger: logging.Logger, *, timeout: int=180) -> subprocess.CompletedProcess[str]",
+          "parameters": [
+            {
+              "name": "command",
+              "kind": "positional_or_keyword",
+              "type": "list[str]",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            },
+            {
+              "name": "timeout",
+              "kind": "keyword_only",
+              "type": "int",
+              "default": "180"
+            }
+          ],
+          "return_annotation": "subprocess.CompletedProcess[str]",
+          "explicit_raises": [
+            "RuntimeError(f\"子进程退出代码{result.returncode}: {' '.join(command)}\\n{result.stderr.strip()}\")"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "read_excel_snapshot",
+          "line": 124,
+          "end_line": 156,
+          "signature": "def read_excel_snapshot(excel_path: Path) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "excel_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": "只读读取Excel缓存值，用于与CSV自动交叉核对。"
+        },
+        {
+          "name": "collect_environment",
+          "line": 159,
+          "end_line": 224,
+          "signature": "def collect_environment(project_python: Path | None, before_image: str, after_image: str, logger: logging.Logger) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "project_python",
+              "kind": "positional_or_keyword",
+              "type": "Path | None",
+              "default": null
+            },
+            {
+              "name": "before_image",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "after_image",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "build_payload",
+          "line": 227,
+          "end_line": 419,
+          "signature": "def build_payload(excel_path: Path, stats_csv: Path, reliability_csv: Path, reliability_evidence: Path, project_python: Path | None, logger: logging.Logger) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "excel_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "stats_csv",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "reliability_csv",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "reliability_evidence",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "project_python",
+              "kind": "positional_or_keyword",
+              "type": "Path | None",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "build_charts_internal",
+          "line": 422,
+          "end_line": 656,
+          "signature": "def build_charts_internal(payload_path: Path, chart_dir: Path, result_json: Path, log_path: Path) -> int",
+          "parameters": [
+            {
+              "name": "payload_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "chart_dir",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "result_json",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "log_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "build_docx",
+          "line": 659,
+          "end_line": 1247,
+          "signature": "def build_docx(payload: dict[str, Any], chart_results: dict[str, Any], docx_path: Path, logger: logging.Logger, report_title: str='批量变化检测统计报告') -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "payload",
+              "kind": "positional_or_keyword",
+              "type": "dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "chart_results",
+              "kind": "positional_or_keyword",
+              "type": "dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "docx_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            },
+            {
+              "name": "report_title",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": "'批量变化检测统计报告'"
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "convert_word_to_pdf_optional",
+          "line": 1250,
+          "end_line": 1340,
+          "signature": "def convert_word_to_pdf_optional(docx_path: Path, pdf_path: Path, logger: logging.Logger) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "docx_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "pdf_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": "尽力使用本机Word转换PDF；失败时返回警告而不抛出异常。"
+        },
+        {
+          "name": "convert_word_to_pdf_internal",
+          "line": 1343,
+          "end_line": 1359,
+          "signature": "def convert_word_to_pdf_internal(docx_path: Path, pdf_path: Path, result_json: Path, log_path: Path) -> int",
+          "parameters": [
+            {
+              "name": "docx_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "pdf_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "result_json",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "log_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": "保留旧命令行内部入口，转换不可用时也正常返回。"
+        },
+        {
+          "name": "validate_chart_files",
+          "line": 1362,
+          "end_line": 1407,
+          "signature": "def validate_chart_files(chart_results: dict[str, Any], logger: logging.Logger) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "chart_results",
+              "kind": "positional_or_keyword",
+              "type": "dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "validate_and_render_pdf",
+          "line": 1410,
+          "end_line": 1484,
+          "signature": "def validate_and_render_pdf(pdf_path: Path, poppler: Path, qa_dir: Path, logger: logging.Logger) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "pdf_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "poppler",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "qa_dir",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "logger",
+              "kind": "positional_or_keyword",
+              "type": "logging.Logger",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [
+            "RuntimeError(f'PDF渲染失败：{render.stderr}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "write_acceptance_report",
+          "line": 1487,
+          "end_line": 1607,
+          "signature": "def write_acceptance_report(manifest: dict[str, Any], acceptance_path: Path, *, visual_qa_status: str, visual_qa_notes: str='') -> None",
+          "parameters": [
+            {
+              "name": "manifest",
+              "kind": "positional_or_keyword",
+              "type": "dict[str, Any]",
+              "default": null
+            },
+            {
+              "name": "acceptance_path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "visual_qa_status",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "visual_qa_notes",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": "''"
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "orchestrate",
+          "line": 1610,
+          "end_line": 1741,
+          "signature": "def orchestrate(args: argparse.Namespace) -> int",
+          "parameters": [
+            {
+              "name": "args",
+              "kind": "positional_or_keyword",
+              "type": "argparse.Namespace",
+              "default": null
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [
+            "FileNotFoundError(f'必要文件不存在：{path}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "finalize_visual_qa",
+          "line": 1744,
+          "end_line": 1761,
+          "signature": "def finalize_visual_qa(args: argparse.Namespace) -> int",
+          "parameters": [
+            {
+              "name": "args",
+              "kind": "positional_or_keyword",
+              "type": "argparse.Namespace",
+              "default": null
+            }
+          ],
+          "return_annotation": "int",
+          "explicit_raises": [
+            "FileNotFoundError(f'运行清单不存在：{manifest_path}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "parse_args",
+          "line": 1764,
+          "end_line": 1812,
+          "signature": "def parse_args() -> argparse.Namespace",
+          "parameters": [],
+          "return_annotation": "argparse.Namespace",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "main",
+          "line": 1815,
+          "end_line": 1846,
+          "signature": "def main() -> int",
+          "parameters": [],
+          "return_annotation": "int",
+          "explicit_raises": [],
+          "docstring": null
+        }
+      ],
+      "classes": [],
+      "audit_note": "explicit_raises仅列源码中的显式raise；文件IO、导入和第三方库还可能抛出标准异常。"
+    },
+    {
+      "file": "01_源代码/li_batch_api.py",
+      "sha256": "9e2b5356a6df643bbfa4945508cfa61e2814d10d8b4edf8c57d2ab73fb49a104",
+      "module_docstring": "李昌辉“批量处理与自动化＋统计报告”模块的轻量 UI 接口。\n\n本文件只负责参数校验、路径组织、进度事件转发和既有核心入口调度；\n不复制变化检测、栅格统计、Excel、图表、Word 或 PDF 的业务逻辑。",
+      "functions": [
+        {
+          "name": "_as_path",
+          "line": 38,
+          "end_line": 41,
+          "signature": "def _as_path(value: str | os.PathLike[str], *, name: str) -> Path",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "name",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [
+            "ValueError(f'{name}不能为空')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_require_file",
+          "line": 44,
+          "end_line": 48,
+          "signature": "def _require_file(value: str | os.PathLike[str], *, name: str) -> Path",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "name",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [
+            "FileNotFoundError(f'{name}不存在：{path}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_prepare_output_dir",
+          "line": 51,
+          "end_line": 60,
+          "signature": "def _prepare_output_dir(value: str | os.PathLike[str]) -> Path",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [
+            "PermissionError(f'输出目录不可写：{path}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_emit",
+          "line": 63,
+          "end_line": 89,
+          "signature": "def _emit(callback: ProgressCallback | None, callback_errors: list[str], *, stage: str, task_id: str='', current: int=0, total: int=0, status: str, progress_percent: float, message: str) -> None",
+          "parameters": [
+            {
+              "name": "callback",
+              "kind": "positional_or_keyword",
+              "type": "ProgressCallback | None",
+              "default": null
+            },
+            {
+              "name": "callback_errors",
+              "kind": "positional_or_keyword",
+              "type": "list[str]",
+              "default": null
+            },
+            {
+              "name": "stage",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "task_id",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": "''"
+            },
+            {
+              "name": "current",
+              "kind": "keyword_only",
+              "type": "int",
+              "default": "0"
+            },
+            {
+              "name": "total",
+              "kind": "keyword_only",
+              "type": "int",
+              "default": "0"
+            },
+            {
+              "name": "status",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "progress_percent",
+              "kind": "keyword_only",
+              "type": "float",
+              "default": null
+            },
+            {
+              "name": "message",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "None",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "_load_module",
+          "line": 92,
+          "end_line": 110,
+          "signature": "def _load_module(path: Path, module_key: str) -> ModuleType",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "module_key",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "ModuleType",
+          "explicit_raises": [
+            "ImportError(f'无法加载模块：{path}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_find_core_script",
+          "line": 113,
+          "end_line": 126,
+          "signature": "def _find_core_script(explicit: str | os.PathLike[str] | None, filename: str) -> Path",
+          "parameters": [
+            {
+              "name": "explicit",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str] | None",
+              "default": null
+            },
+            {
+              "name": "filename",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [
+            "FileNotFoundError(f'未找到核心文件{filename}；可通过对应的 *_script 参数显式传入')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_read_status_rows",
+          "line": 129,
+          "end_line": 133,
+          "signature": "def _read_status_rows(path: Path) -> list[dict[str, str]]",
+          "parameters": [
+            {
+              "name": "path",
+              "kind": "positional_or_keyword",
+              "type": "Path",
+              "default": null
+            }
+          ],
+          "return_annotation": "list[dict[str, str]]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "_result_location",
+          "line": 136,
+          "end_line": 145,
+          "signature": "def _result_location(rows: list[dict[str, str]]) -> tuple[str, list[str]]",
+          "parameters": [
+            {
+              "name": "rows",
+              "kind": "positional_or_keyword",
+              "type": "list[dict[str, str]]",
+              "default": null
+            }
+          ],
+          "return_annotation": "tuple[str, list[str]]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "run_batch_detection",
+          "line": 148,
+          "end_line": 251,
+          "signature": "def run_batch_detection(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, real_mode: bool=False, batch_controller_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task_list_path",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "config_path",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "output_dir",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "progress_callback",
+              "kind": "positional_or_keyword",
+              "type": "ProgressCallback | None",
+              "default": "None"
+            },
+            {
+              "name": "real_mode",
+              "kind": "keyword_only",
+              "type": "bool",
+              "default": "False"
+            },
+            {
+              "name": "batch_controller_script",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": "调用现有批量控制器，返回批次汇总及状态表、日志和结果路径。"
+        },
+        {
+          "name": "_resolve_executable",
+          "line": 254,
+          "end_line": 271,
+          "signature": "def _resolve_executable(explicit: str | os.PathLike[str] | None, *, name: str, env_name: str, search_names: tuple[str, ...], default_to_current_python: bool=False) -> Path",
+          "parameters": [
+            {
+              "name": "explicit",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str] | None",
+              "default": null
+            },
+            {
+              "name": "name",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "env_name",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            },
+            {
+              "name": "search_names",
+              "kind": "keyword_only",
+              "type": "tuple[str, ...]",
+              "default": null
+            },
+            {
+              "name": "default_to_current_python",
+              "kind": "keyword_only",
+              "type": "bool",
+              "default": "False"
+            }
+          ],
+          "return_annotation": "Path",
+          "explicit_raises": [
+            "FileNotFoundError(f'未找到{name}；请传入参数或设置环境变量{env_name}')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "_run_process_lines",
+          "line": 274,
+          "end_line": 305,
+          "signature": "def _run_process_lines(command: list[str], *, cwd: Path, callback: ProgressCallback | None, callback_errors: list[str], stage: str) -> tuple[int, str]",
+          "parameters": [
+            {
+              "name": "command",
+              "kind": "positional_or_keyword",
+              "type": "list[str]",
+              "default": null
+            },
+            {
+              "name": "cwd",
+              "kind": "keyword_only",
+              "type": "Path",
+              "default": null
+            },
+            {
+              "name": "callback",
+              "kind": "keyword_only",
+              "type": "ProgressCallback | None",
+              "default": null
+            },
+            {
+              "name": "callback_errors",
+              "kind": "keyword_only",
+              "type": "list[str]",
+              "default": null
+            },
+            {
+              "name": "stage",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "tuple[int, str]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "_last_json_object",
+          "line": 308,
+          "end_line": 320,
+          "signature": "def _last_json_object(text: str) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "text",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [
+            "RuntimeError('核心脚本未输出可解析的JSON结果')"
+          ],
+          "docstring": null
+        },
+        {
+          "name": "generate_statistics",
+          "line": 323,
+          "end_line": 427,
+          "signature": "def generate_statistics(status_table_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, result_root: str | os.PathLike[str] | None=None, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "status_table_path",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "output_dir",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "progress_callback",
+              "kind": "positional_or_keyword",
+              "type": "ProgressCallback | None",
+              "default": "None"
+            },
+            {
+              "name": "result_root",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "python_executable",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "node_executable",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "node_modules_dir",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "statistics_script",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [
+            "RuntimeError(f'统计脚本执行失败，退出代码{exit_code}；日志：{log_path}\\n{tail}')"
+          ],
+          "docstring": "调用纯Python统计脚本，生成统计Excel、明细CSV、日志和验收记录。\n\n``node_executable``与``node_modules_dir``仅为兼容V1.0调用保留，V1.1不再使用。"
+        },
+        {
+          "name": "_safe_filename",
+          "line": 430,
+          "end_line": 433,
+          "signature": "def _safe_filename(title: str) -> str",
+          "parameters": [
+            {
+              "name": "title",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": null
+            }
+          ],
+          "return_annotation": "str",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "_generate_report_in_process",
+          "line": 436,
+          "end_line": 516,
+          "signature": "def _generate_report_in_process(job: dict[str, Any]) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "job",
+              "kind": "positional_or_keyword",
+              "type": "dict[str, Any]",
+              "default": null
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": null
+        },
+        {
+          "name": "generate_report",
+          "line": 519,
+          "end_line": 585,
+          "signature": "def generate_report(excel_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], report_title: str='批量变化检测统计报告', progress_callback: ProgressCallback | None=None, *, stats_csv_path: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, reliability_status_path: str | os.PathLike[str] | None=None, reliability_evidence_path: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "excel_path",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "output_dir",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "report_title",
+              "kind": "positional_or_keyword",
+              "type": "str",
+              "default": "'批量变化检测统计报告'"
+            },
+            {
+              "name": "progress_callback",
+              "kind": "positional_or_keyword",
+              "type": "ProgressCallback | None",
+              "default": "None"
+            },
+            {
+              "name": "stats_csv_path",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "orchestrator_python",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "project_python",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "poppler_path",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "reliability_status_path",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "reliability_evidence_path",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "report_script",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [
+            "ValueError('report_title不能为空')"
+          ],
+          "docstring": "使用普通Python库生成图表和Word，并尽力通过本机Word生成PDF。\n\n``orchestrator_python``、``project_python``与``poppler_path``仅为兼容\nV1.0调用保留；报告生成不再依赖这些外部运行时路径。"
+        },
+        {
+          "name": "run_full_pipeline",
+          "line": 588,
+          "end_line": 668,
+          "signature": "def run_full_pipeline(task_list_path: str | os.PathLike[str], config_path: str | os.PathLike[str], output_dir: str | os.PathLike[str], progress_callback: ProgressCallback | None=None, *, report_title: str='批量变化检测统计报告', real_mode: bool=False, python_executable: str | os.PathLike[str] | None=None, node_executable: str | os.PathLike[str] | None=None, node_modules_dir: str | os.PathLike[str] | None=None, orchestrator_python: str | os.PathLike[str] | None=None, project_python: str | os.PathLike[str] | None=None, poppler_path: str | os.PathLike[str] | None=None, batch_controller_script: str | os.PathLike[str] | None=None, statistics_script: str | os.PathLike[str] | None=None, report_script: str | os.PathLike[str] | None=None) -> dict[str, Any]",
+          "parameters": [
+            {
+              "name": "task_list_path",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "config_path",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "output_dir",
+              "kind": "positional_or_keyword",
+              "type": "str | os.PathLike[str]",
+              "default": null
+            },
+            {
+              "name": "progress_callback",
+              "kind": "positional_or_keyword",
+              "type": "ProgressCallback | None",
+              "default": "None"
+            },
+            {
+              "name": "report_title",
+              "kind": "keyword_only",
+              "type": "str",
+              "default": "'批量变化检测统计报告'"
+            },
+            {
+              "name": "real_mode",
+              "kind": "keyword_only",
+              "type": "bool",
+              "default": "False"
+            },
+            {
+              "name": "python_executable",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "node_executable",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "node_modules_dir",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "orchestrator_python",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "project_python",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "poppler_path",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "batch_controller_script",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "statistics_script",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            },
+            {
+              "name": "report_script",
+              "kind": "keyword_only",
+              "type": "str | os.PathLike[str] | None",
+              "default": "None"
+            }
+          ],
+          "return_annotation": "dict[str, Any]",
+          "explicit_raises": [],
+          "docstring": "按“批量检测→统计→报告”顺序调用三个既有核心阶段。"
+        }
+      ],
+      "classes": [],
+      "audit_note": "explicit_raises仅列源码中的显式raise；文件IO、导入和第三方库还可能抛出标准异常。"
+    }
+  ]
+}

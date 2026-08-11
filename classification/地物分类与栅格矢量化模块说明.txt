@@ -1,0 +1,111 @@
+地物分类与栅格矢量化模块说明文档
+============================================================
+李晨曦模块 — 地物分类与栅格矢量化工具
+第24届 SuperMap 杯高校 GIS 大赛 — 开发组
+============================================================
+【功能概述】
+本模块为遥感影像地物智能解译核心模块，包含两大核心能力：
+1. 地物分类：基于深度学习 landcover 模型，对遥感影像完成像素级多类别地物分类，输出分类栅格数据。
+2. 栅格转矢量：将分类栅格结果批量转为面矢量数据，自动构建标准化属性表，支持细碎图斑过滤、边界平滑简化，输出 SuperMap 标准 UDBX 矢量数据源，为后续变化交叉分析提供合规矢量数据。
+【前置条件】
+- 已配置 SuperMap iObjects Python 运行环境，兼容官方深度学习推理接口。
+- 拥有 landcover 地物分类模型，存放于项目 model 资源目录。
+- 支持常规遥感栅格影像（.tif、.img 等格式）输入。
+- 输出矢量数据集统一命名为 vector_result
+============================================================
+一、模块核心功能详情（classify+vetorize.py）
+============================================================
+【函数】run_classify(input_image, output_raster, model_key, gpu, batch_size, offset)
+功能：
+使用 SuperMap 预训练 landcover 多类别分类模型，对原始遥感影像进行像素级地物语义分割，输出带有类别编码的分类栅格影像。支持 GPU/CPU 推理，适配大影像滑动窗口分块推理，自动消除分块拼接缝隙。
+参数：
+input_image   (str)  : 输入遥感影像完整路径（支持 .tif, .img 等栅格格式）
+output_raster (str)  : 输出分类栅格保存路径（推荐 .tif 格式）
+model_key     (str)  : 推理模型标识，默认固定为 "landcover"
+gpu           (int)  : GPU 设备编号，-1 为 CPU 推理，默认 0
+batch_size    (int)  : 推理批次大小，控制推理速度与显存占用，默认 1
+offset        (int)  : 滑动窗口重叠像素，兜底默认128，优先读取模型内置配置
+返回值：
+bool: True 推理成功，False 推理失败/文件不存在/模型加载异常
+输出产物：
+指定路径下的分类栅格影像，影像像素值对应地物类别编码（1-建筑、2-道路、3-水体），为后续矢量化提供基础数据。
+【函数】run_vectorize(input_raster, output_vector, class_map_json, min_area, simplify_tolerance)
+功能：
+将深度学习分类栅格批量转换为面矢量数据集，自动创建标准化属性表，支持自定义类别映射、细碎无效图斑过滤、矢量边界平滑简化，输出标准 UDBX 矢量文件。
+参数：
+input_raster        (str)  : 输入分类栅格路径（由 run_classify 函数生成）
+output_vector       (str)  : 输出矢量数据源路径（支持 .udbx、.shp），不指定则自动生成默认路径
+class_map_json      (str)  : JSON 格式类别映射字符串，默认内置 1→建筑、2→道路、3→水体，无需手动传参
+min_area            (float): 最小图斑保留面积（单位：平方米），小于该阈值的细碎图斑自动过滤删除，默认 0.0（不过滤）
+simplify_tolerance  (float): 矢量边界简化容差（单位：米），用于平滑锯齿边界，默认 0.0（不简化）
+返回值：
+bool: True 矢量化成功，False 文件缺失/转换异常/参数错误
+输出产物：
+输出矢量数据源，内置唯一矢量数据集vector_result，适配后续交叉分析模块标准，内置属性字段如下：
+- 类别编码（整型）：栅格原始像素分类编码
+- 类别（文本）：地物类别名称（字段自动创建，可通过桌面端批量赋值）
+- 面积（双精度）：单图斑实际占地面积（平方米）
+- SmArea（双精度）：SuperMap 系统自动计算面积（备用校验字段）
+- 系统默认字段：SmID、SmUserID、SmGeometry 等基础字段
+【命令行用法示例】
+# 1. 遥感影像地物分类推理
+python classify+vetorize.py classify -i input.tif -o classify.tif --gpu 0
+# 2. 分类栅格转矢量（默认参数、自动输出路径）
+python classify+vetorize.py vectorize -r classify.tif
+# 3. 自定义参数矢量化（过滤小图斑+边界平滑+指定输出路径）
+python classify+vetorize.py vectorize -r classify.tif -o vector.udbx --min-area 50 --simplify 0.5
+============================================================
+二、对外标准化接口说明
+============================================================
+【接口概述】
+本模块所有核心功能均开放独立 Python 函数接口，无硬编码、无全局变量依赖，支持 GUI 界面、主程序、批处理脚本直接导入调用。接口内置异常容错、资源自动回收，不会锁死UDBX文件，支持重复调用、批量调用。
+2.1 地物分类推理接口
+接口函数：run_classify
+功能：遥感影像像素级地物深度学习分类，输出标准化分类栅格数据
+入参
+input_image   (str) ：原始遥感影像路径
+output_raster (str) ：输出分类栅格保存路径
+model_key     (str) ：模型标识，默认 landcover
+gpu           (int) ：GPU编号，-1为CPU推理
+batch_size    (int) ：推理批次大小
+offset        (int) ：滑动窗口重叠像素，防止分块拼接缝隙
+出参：bool（True=成功，False=失败）
+调用方式
+from classify+vetorize import run_classify
+ok = run_classify("img.tif", "classify.tif", "landcover", 0, 1, 128)
+2.2 栅格矢量化接口
+接口函数：run_vectorize
+功能：分类栅格转面矢量，自动建属性表、过滤细碎图斑、平滑边界
+入参
+input_raster        (str) ：分类栅格文件路径
+output_vector       (str) ：输出UDBX/SHP矢量路径
+class_map_json      (str) ：类别映射JSON字符串，默认使用内置映射
+min_area            (float)：最小保留图斑面积阈值
+simplify_tolerance  (float)：矢量边界简化容差
+出参：bool（True=成功，False=失败）
+调用方式
+from classify+vetorize import run_vectorize
+ok = run_vectorize("classify.tif", "vector.udbx", None, 50.0, 0.5)
+2.3 接口业务链路
+原始遥感影像 → run_classify() → 分类栅格数据 → run_vectorize() → 标准化地物矢量UDBX
+2.4 接口约束说明
+1. 输出矢量数据集固定为 vector_result，统一项目数据规范；
+2. 纯函数无全局变量、无路径硬编码，支持重复调用、批量调用；
+3. 自动管理数据源与工作空间资源，运行结束自动释放，无文件锁；
+4. 输出矢量可直接对接后续变化检测交叉分析模块。
+============================================================
+三、常见问题
+============================================================
+Q1: 运行提示无法导入依赖模块？
+A1: 确保 config.json 配置正确，相关依赖脚本与主脚本同级目录。
+Q2: 地物分类可识别哪些类别？
+A2: 由 landcover 模型训练标签决定，默认支持建筑、道路、水体三类地物，可自定义类别映射扩展。
+Q3: 矢量化后类别字段为空？
+A3: 代码仅自动创建字段，需通过 SuperMap iDesktop 字段计算器，根据类别编码批量填充中文名称。
+Q4: 矢量化图斑存在大量细碎噪点？
+A4: 运行时配置 --min-area 参数，设置合理最小面积阈值，自动过滤细碎无效图斑。
+============================================================
+四、文件清单
+============================================================
+classify+vetorize.py  - 地物分类、栅格矢量化核心脚本
+本文档                 - 模块独立说明与接口规范文档

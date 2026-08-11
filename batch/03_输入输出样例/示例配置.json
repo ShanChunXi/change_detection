@@ -1,0 +1,12 @@
+{
+  "module_name": "李昌辉批量处理模块",
+  "dry_run": false,
+  "task_csv": "03_输入输出样例/示例任务清单.csv",
+  "log_dir": "interface_output",
+  "output_dir": "external_results",
+  "zhang_module_work_copy": "D:/项目根目录/变化检测/src",
+  "batch_size": 1,
+  "offset": null,
+  "core_result_type": "grid",
+  "notes": "地物分类模式"
+}
