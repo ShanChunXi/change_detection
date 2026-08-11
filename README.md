@@ -63,13 +63,6 @@ python change_detection.py run -b 2020.tif -a 2024.tif -o result.udbx
 python change_detection.py run-vec -b 2020.tif -a 2024.tif -o result.udbx
 ```
 
-### 给组员的 checklist
-
-- [ ] SuperMap Python 装好了
-- [ ] `pip install PyQt5` 跑过了
-- [ ] `python setup_config.py` 打开配置工具，四个路径全绿 ✅
-- [ ] 保存 → `python change_detection.py ui` 启动成功
-
 ---
 
 ## 配置详情（`config.json`）
@@ -230,29 +223,6 @@ change_detection/
 ├── .python-version                 # Python 3.10
 ├── README.md
 └── .gitignore
-```
-
-## 模块协作关系
-
-```
-                 ┌─────────────────────┐
-                 │   变化检测 (张硕岐)    │
-                 │   推理引擎 + GUI      │
-                 └─────────┬───────────┘
-                           │
-          输出: UDBX 矢量 (change_polygons)
-          ├─ change_type: 新增建筑/消失地物/属性变更/其他变化
-          ├─ area_m2: 面积
-          └─ SmID: 要素ID
-                           │
-       ┌───────────────────┼───────────────────┐
-       ▼                   ▼                   ▼
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ 专题图 (贾思雨)│  │ 批量管线 (李昌辉)│ │ 精度验证 (李晨曦)│
-│              │  │              │  │              │
-│ 读取 polygon  │  │ 循环调用推理   │  │ 读取 polygon  │
-│ 分层设色渲染  │  │ 统计 + 报告   │  │ 地物分类交叉  │
-└──────────────┘  └──────────────┘  └──────────────┘
 ```
 
 ## 注意事项
