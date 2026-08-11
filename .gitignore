@@ -28,6 +28,12 @@ classification/classify_result.tif/
 classification/classify_result.udbx
 classification/classify_result.udd
 
+# uv / virtual environment
+.venv/
+
+# Ruff
+.ruff_cache/
+
 # OS
 .DS_Store
 Thumbs.db

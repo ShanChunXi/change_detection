@@ -1,0 +1,34 @@
+[project]
+name = "change-detection"
+version = "0.1.0"
+description = "城市变化检测与地图更新工具 — 第24届 SuperMap 杯高校 GIS 大赛"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "PyQt5>=5.15",
+    "numpy>=1.24",
+    "rasterio>=1.3",
+    "openpyxl>=3.1",
+    "matplotlib>=3.7",
+    "Pillow>=10",
+    "python-docx>=1.1",
+    "pywin32>=306; platform_system == 'Windows'",
+]
+# 核心依赖 iobjectspy 为 SuperMap 专有包，需使用 SuperMap 自带的 Python 环境
+# 参见 README.md 中的环境配置说明
+
+[dependency-groups]
+dev = [
+    "ruff>=0.5",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
