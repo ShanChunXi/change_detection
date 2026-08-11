@@ -1,22 +1,93 @@
 # 城市变化检测与地图更新工具
 
-第 24 届 SuperMap 杯高校 GIS 大赛开发组作品。基于 SuperMap iObjects Python 和深度学习模型，输入两期遥感影像即可自动识别变化区域，输出带分类属性的矢量 polygon，并支持批量处理、专题制图和统计报告生成。
+第 24 届 SuperMap 杯高校 GIS 大赛开发组作品。输入两期遥感影像，自动识别变化区域，输出带分类属性的矢量 polygon，支持批量处理、专题制图和统计报告。
 
-## 功能状态
+---
 
-| 模块 | 状态 | 说明 |
+## 如何打开软件
+
+### 第一步：安装 SuperMap 三件套
+
+从大赛官网或 SuperMap 官网下载三个包，放到同一个目录（建议 `F:/supermap/`）：
+
+| 组件 | 解压后大概长这样 | 约大小 |
 | --- | --- | --- |
-| 基础变化检测 | 已实现 | SiamSFNet 模型，输出栅格二值掩膜 |
-| 增强变化检测 | 已实现 | 栅格→矢量转换 + 四类变化自动分类 |
-| CSV 批量处理 | 已实现 | 从任务清单 CSV 逐对执行基础推理 |
-| 文件夹批量处理 | 已实现 | 自动扫描配对影像 → 顺序推理 → 状态追踪 → 汇总报告 |
-| 变化类型分类 | 已实现 | 新增建筑 / 消失地物 / 属性变更 / 其他变化 |
-| PyQt5 图形界面 | 已实现 | 四模式切换、后台线程、进度追踪 |
-| 批量管线与报告 | 已实现 | 状态统计、Excel/图表/Word/PDF 报告 |
-| 地物分类与矢量化 | 已实现 | 单时相地物分类 + 栅格转矢量 |
-| 专题图生成 | 已实现 | 按变化类型分层设色输出专题地图 |
-| CLI 命令行 | 已实现 | 7 个子命令，参数化调用 |
-| 交互菜单 | 已实现 | 9 个选项的终端菜单，记忆上次参数 |
+| **SuperMap iObjects Python (GPU)** | `…/conda/python.exe` | ~8 GB |
+| **SuperMap iObjects Java** | `…/jre1.8_x64/` 和 `…/Bin/` | ~4 GB |
+| **ML 资源包** | `…/resources_ml/model/` | ~5 GB |
+
+### 第二步：安装 PyQt5
+
+打开终端（PowerShell 或 cmd），用 SuperMap 自带的 Python 装：
+
+```powershell
+F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe -m pip install PyQt5
+```
+
+### 第三步：打开图形化配置工具
+
+```powershell
+cd 变化检测/src
+python setup_config.py
+```
+
+> 如果上面命令报 "No module named PyQt5"，说明还没装第二步。也可以用任意一个装过 PyQt5 的 Python 来打开它 —— `setup_config.py` 不依赖 SuperMap，只用来编辑配置文件。
+
+打开后界面如下：
+
+- **四个路径输入框**，每个右边有「浏览」按钮
+- 填完一个路径自动检测是否存在（✅ / ❌）
+- 点击「**自动检测**」可扫描 C/D/E/F 盘的标准安装位置
+- 点击「**保存配置**」会写入 `config.json`，然后窗口自动关闭
+
+### 第四步：启动主界面
+
+配置保存后，在同一个终端里运行：
+
+```powershell
+python change_detection.py ui
+```
+
+首次启动约 60 秒（SuperMap 初始化，复制 34 个 JAR 文件），后续启动几秒即可。
+
+### 其他打开方式
+
+```powershell
+# 交互菜单（命令行选单，不需要 PyQt5）
+python change_detection.py menu
+
+# 命令行直接跑
+python change_detection.py run -b 2020.tif -a 2024.tif -o result.udbx
+
+# 增强检测（矢量输出 + 变化分类）
+python change_detection.py run-vec -b 2020.tif -a 2024.tif -o result.udbx
+```
+
+### 给组员的 checklist
+
+- [ ] SuperMap Python 装好了
+- [ ] `pip install PyQt5` 跑过了
+- [ ] `python setup_config.py` 打开配置工具，四个路径全绿 ✅
+- [ ] 保存 → `python change_detection.py ui` 启动成功
+
+---
+
+## 配置详情（`config.json`）
+
+四个路径保存在 `变化检测/src/config.json`，手动编辑也可以：
+
+```json
+{
+    "python_path":  "F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe",
+    "java_home":    "F:/supermap/supermap-iobjectsjava-2026-win-all/jre1.8_x64",
+    "iobjects_bin": "F:/supermap/supermap-iobjectsjava-2026-win-all/Bin",
+    "resources_ml": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml"
+}
+```
+
+`setup_config.py` 填了 `python_path` 后会自动推断其他三个路径（如果它们的目录结构跟标准安装一致的话）。
+
+---
 
 ## 变化类型
 
@@ -27,60 +98,26 @@
 | 属性变更 | T1/T2 均有建筑物且位于变化区域（改建/扩建） |
 | 其他变化 | 非建筑类地表变化（道路、水体、植被等） |
 
-输出矢量数据集的每个 polygon 包含 `change_type`（变化类型）和 `area_m2`（面积）属性字段。
+输出矢量数据集每个 polygon 包含 `change_type` 和 `area_m2` 属性。
 
-## 环境要求
+---
 
-- Windows 10/11
-- [SuperMap iObjects Python (GPU 版)](https://www.supermap.com) — 核心推理环境，含 `iobjectspy`
-- SuperMap iObjects Java — JRE + Bin 目录
-- ML 资源包 — 含预训练模型（SiamSFNet、SegFormer）
-- Python 3.10（SuperMap 自带）
-- [uv](https://docs.astral.sh/uv/)（推荐，管理外围依赖）
+## 功能状态
 
-`pyproject.toml` 中声明了 PyQt5、rasterio、openpyxl 等外围依赖。核心依赖 `iobjectspy` 为 SuperMap 专有包，不在 PyPI 上，需使用 SuperMap 自带的 Python 环境。
-
-## 安装与启动
-
-### 1. 配置环境
-
-首次使用需设置 `变化检测/src/config.json` 中的四个路径：
-
-```json
-{
-    "java_home":    "D:/supermap安装包/java/.../jre1.8_x64",
-    "iobjects_bin": "D:/supermap安装包/java/.../Bin",
-    "resources_ml": "D:/supermap安装包/resources/.../resources_ml",
-    "python_path":  "D:/supermap安装包/python/.../python.exe"
-}
-```
-
-也可以直接运行 `run.bat`，启动脚本会自动搜索标准安装路径，找不到时进入交互式配置向导。
-
-### 2. 安装外围依赖
-
-```powershell
-# 使用 uv（推荐）
-uv sync
-
-# 或使用 pip
-D:/supermap安装包/python/.../python.exe -m pip install PyQt5 numpy rasterio openpyxl matplotlib Pillow python-docx
-```
-
-### 3. 启动
-
-```powershell
-# 交互菜单（最常用）
-python 变化检测/src/change_detection.py menu
-
-# 图形界面
-python 变化检测/src/change_detection.py ui
-
-# 双击启动
-run.bat
-```
-
-首次启动约需 60 秒（SuperMap 初始化 JAR 文件），后续启动会更快。
+| 模块 | 状态 | 说明 |
+| --- | --- | --- |
+| 基础变化检测 | 已实现 | SiamSFNet 模型，输出栅格二值掩膜 |
+| 增强变化检测 | 已实现 | 栅格→矢量 + 四类变化自动分类 |
+| CSV 批量处理 | 已实现 | 任务清单 CSV 逐对推理 |
+| 文件夹批量处理 | 已实现 | 自动扫描配对 → 顺序推理 → 状态追踪 → 汇总报告 |
+| 变化类型分类 | 已实现 | 新增建筑 / 消失地物 / 属性变更 / 其他变化 |
+| PyQt5 图形界面 | 已实现 | GIS 风格菜单栏 + 工具栏，后台线程，日志实时滚动 |
+| 独立配置工具 | 已实现 | `setup_config.py`：零 SuperMap 依赖，图形化配 config.json |
+| 批量管线与报告 | 已实现 | 状态统计、Excel/图表/Word/PDF 报告 |
+| 地物分类与矢量化 | 已实现 | 单时相地物分类 + 栅格转矢量 |
+| 专题图生成 | 已实现 | 按变化类型分层设色输出专题地图 |
+| CLI 命令行 | 已实现 | 7 个子命令，参数化调用 |
+| 交互菜单 | 已实现 | 9 选项终端菜单，记忆上次参数 |
 
 ## 使用方式
 
@@ -164,8 +201,8 @@ change_detection/
 ├── 变化检测/                     # 核心变化检测模块（张硕岐）
 │   ├── src/
 │   │   ├── change_detection.py          # 推理引擎、CLI、交互菜单
-│   │   ├── change_detection_ui.py       # PyQt5 图形界面
-│   │   ├── main_pyqt.py                 # PyQt5 主入口（四模式切换）
+│   │   ├── change_detection_ui.py       # PyQt5 图形界面（主入口）
+│   │   ├── main_pyqt.py                 # PyQt5 旧版（已被 change_detection_ui.py 取代）
 │   │   ├── classify_vectorize.py        # 地物分类与栅格矢量化
 │   │   ├── mapper.py                    # 专题图生成
 │   │   └── config.json                  # 环境路径与记忆参数

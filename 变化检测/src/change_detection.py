@@ -1584,69 +1584,16 @@ def run_self_check() -> bool:
 # ============================================================================
 
 def run_setup_wizard():
-    cfg = load_config()
-
-    print()
-    print("=" * 60)
-    print("  首次使用 — 配置向导")
-    print("=" * 60)
-    print()
-
-    fields = [
-        ("java_home", "SuperMap iObjects Java JRE 路径",
-         "F:/supermap/supermap-iobjectsjava-2026-win-all/jre1.8_x64"),
-        ("iobjects_bin", "SuperMap iObjects Java Bin 路径",
-         "F:/supermap/supermap-iobjectsjava-2026-win-all/Bin"),
-        ("resources_ml", "SuperMap ML 资源包路径",
-         "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml"),
-        ("python_path", "SuperMap Python 解释器路径",
-         "F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe"),
-    ]
-
-    for key, description, example in fields:
-        current = cfg.get(key, "")
-        if current:
-            prompt = f"  {description}\n  当前值: {current}\n  新值 (回车不变): "
-        else:
-            prompt = f"  {description}\n  例如: {example}\n  输入: "
-
-        try:
-            value = input(prompt).strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\n  配置已取消。")
-            return
-
-        if value:
-            cfg[key] = value
-
-    print()
-    print("-" * 60)
-
-    all_ok = True
-    for key in ["java_home", "iobjects_bin", "resources_ml", "python_path"]:
-        v = cfg.get(key, "")
-        exists = os.path.exists(v) if v else False
-        status = "[OK]" if exists else "[MISSING]"
-        if not exists:
-            all_ok = False
-        print(f"  {status} {key}: {v}")
-
-    print("-" * 60)
-
-    if all_ok:
-        print("  所有路径验证通过！")
-    else:
-        print("  部分路径不存在（标记 [MISSING]）")
-
-    save = input("\n  保存配置? (Y/n): ").strip().lower()
-    if save != "n":
-        if save_config(cfg):
-            print("  配置已保存到 config.json")
-        else:
-            print("  保存失败！")
-    else:
-        print("  未保存。")
-    print()
+    """启动 PyQt5 图形化配置工具（独立，不依赖 SuperMap）"""
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "setup_config.py")
+    try:
+        from PyQt5.QtWidgets import QApplication
+    except ImportError:
+        print("[错误] 需要 PyQt5: pip install PyQt5")
+        print("或使用命令行配置: python change_detection.py setup --text")
+        return
+    import subprocess
+    subprocess.run([sys.executable, script])
 
 
 # ============================================================================
@@ -2160,9 +2107,14 @@ def main():
     elif args.command == "ui":
         try:
             from change_detection_ui import main as ui_main
+        except ImportError as e:
+            print(f"[错误] 无法加载图形界面: {e}")
+            print("请确保已安装 PyQt5: pip install PyQt5")
+            sys.exit(1)
+        try:
             ui_main()
-        except ImportError:
-            print("[错误] 无法加载图形界面，请安装 PyQt5")
+        except Exception as e:
+            print(f"[错误] 图形界面启动失败: {e}")
             sys.exit(1)
     elif args.command == "setup":
         run_setup_wizard()

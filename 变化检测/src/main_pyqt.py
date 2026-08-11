@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-城市变化检测与地图更新工具 - PyQt5 版
-白色主题 · 功能卡片平铺 · 全屏字体自动缩放 · 可伸缩布局 · 日志可折叠
+城市变化检测与地图更新工具 - PyQt5 版（旧版）
+⚠ 此文件已被 change_detection_ui.py 取代，保留仅作参考。
+新版 change_detection_ui.py 为 PyQt5 界面，包含全部四种检测模式 +
+地物分类 + 专题图 + 批量管线功能。
+
+启动方式: python change_detection.py ui
 """
 
 import sys
@@ -28,8 +32,16 @@ from change_detection import (
 from classify_vectorize import run_classify, run_vectorize
 from mapper import generate_thematic_map
 
-# 批量处理模块
-sys.path.insert(0, r"D:\项目根目录\batch\01_源代码")
+# 批量处理模块 — 支持 PyInstaller 打包和开发环境两种场景
+if getattr(sys, 'frozen', False):
+    # PyInstaller 打包后资源在 sys._MEIPASS 下
+    _BATCH_DIR = os.path.join(sys._MEIPASS, "batch", "01_源代码")
+else:
+    # 开发环境: 变化检测/src/ → 变化检测/ → 项目根目录/ → batch/01_源代码/
+    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    _BATCH_DIR = os.path.join(_PROJECT_ROOT, "batch", "01_源代码")
+if _BATCH_DIR not in sys.path:
+    sys.path.insert(0, _BATCH_DIR)
 from li_batch_api import run_full_pipeline
 
 
