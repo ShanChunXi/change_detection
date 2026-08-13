@@ -1,27 +1,27 @@
 {
-  "java_home": "F:/supermap/supermap-iobjectsjava-2026-win-all/jre1.8_x64",
-  "iobjects_bin": "F:/supermap/supermap-iobjectsjava-2026-win-all/Bin",
-  "resources_ml": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml",
-  "python_path": "F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe",
-  "last_params": {
-    "before": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml/example_data/inference/cd_image1.tif",
-    "after": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml/example_data/inference/cd_image2.tif",
-    "out": "D:/项目根目录/变化检测/src/333.udbx",
-    "model": "building",
-    "gpu": 0,
-    "out_format": "udbx",
-    "classify": true,
-    "min_change_area": 0
-  },
-  "enhanced": {
-    "classify_enabled": true,
-    "min_change_area": 0,
-    "smooth_boundary": true,
-    "out_dataset_name": "change_polygons"
-  },
-  "batch_folder": {
-    "last_folder": "",
-    "pair_mode": "subdirs",
-    "output_dir": ""
-  }
+    "java_home": "F:/supermap/supermap-iobjectsjava-2026-win-all/jre1.8_x64",
+    "iobjects_bin": "F:/supermap/supermap-iobjectsjava-2026-win-all/Bin",
+    "resources_ml": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml",
+    "python_path": "F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe",
+    "last_params": {
+        "before": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml/example_data/inference/cd_image1.tif",
+        "after": "F:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml/example_data/inference/cd_image2.tif",
+        "out": "D:/项目根目录/变化检测/src/333.udbx",
+        "model": "building",
+        "gpu": 0,
+        "out_format": "udbx",
+        "classify": true,
+        "min_change_area": 0.0
+    },
+    "enhanced": {
+        "classify_enabled": true,
+        "min_change_area": 0,
+        "smooth_boundary": true,
+        "out_dataset_name": "change_polygons"
+    },
+    "batch_folder": {
+        "last_folder": "",
+        "pair_mode": "subdirs",
+        "output_dir": ""
+    }
 }

@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy, QSpacerItem,
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont, QTextCursor
+from PyQt5.QtGui import QFont, QTextCursor, QPixmap, QImage
 
 from change_detection import (
     run_self_check, run_single_inference, run_enhanced_inference,
@@ -455,24 +455,49 @@ class MainWindow(QMainWindow):
             lambda: self._open_file(self._det_after, "影像 (*.tif *.img)")))
         gl.addLayout(self._row("输出路径", self._det_out,
             lambda: self._open_save(self._det_out, "UDBX (*.udbx);;TIFF (*.tif)")))
-        ly.addWidget(g); ly.addStretch(); return w
+        ly.addWidget(g)
+        # 前后期影像缩略图预览
+        pv = QHBoxLayout(); pv.setSpacing(10); pv.addStretch()
+        self._det_pv_b = self._thumb_label("前期影像预览"); pv.addWidget(self._det_pv_b)
+        self._det_pv_a = self._thumb_label("后期影像预览"); pv.addWidget(self._det_pv_a)
+        pv.addStretch(); ly.addLayout(pv)
+        ly.addStretch()
+        self._det_before.textChanged.connect(self._update_det_preview)
+        self._det_after.textChanged.connect(self._update_det_preview)
+        return w
 
     # ── 增强检测 ──
     def _panel_enhanced(self):
         w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
         g = QGroupBox("输入参数"); gl = QVBoxLayout(g); gl.setSpacing(8)
-        gl.addLayout(self._row("前期影像", self._det_before,
-            lambda: self._open_file(self._det_before, "影像 (*.tif *.img)")))
-        gl.addLayout(self._row("后期影像", self._det_after,
-            lambda: self._open_file(self._det_after, "影像 (*.tif *.img)")))
-        gl.addLayout(self._row("输出路径", self._det_out,
-            lambda: self._open_save(self._det_out, "UDBX (*.udbx);;TIFF (*.tif)")))
+        # 增强面板使用独立的字段实例，避免与单次面板共用 widget 导致被重新父化（旧 bug）
+        self._enh_before = QLineEdit(); self._enh_after = QLineEdit()
+        self._enh_out = QLineEdit("result.udbx")
+        gl.addLayout(self._row("前期影像", self._enh_before,
+            lambda: self._open_file(self._enh_before, "影像 (*.tif *.img)")))
+        gl.addLayout(self._row("后期影像", self._enh_after,
+            lambda: self._open_file(self._enh_after, "影像 (*.tif *.img)")))
+        gl.addLayout(self._row("输出路径", self._enh_out,
+            lambda: self._open_save(self._enh_out, "UDBX (*.udbx);;TIFF (*.tif)")))
         opts = QHBoxLayout()
         self._enh_cls = QCheckBox("变化类型分类"); self._enh_cls.setChecked(True); opts.addWidget(self._enh_cls)
         opts.addWidget(QLabel("最小面积(m²)"))
         self._enh_ma = QLineEdit("0"); self._enh_ma.setFixedWidth(80); opts.addWidget(self._enh_ma)
         opts.addStretch(); gl.addLayout(opts)
-        ly.addWidget(g); ly.addStretch(); return w
+        ly.addWidget(g)
+        # 前后期影像缩略图预览
+        pv = QHBoxLayout(); pv.setSpacing(10); pv.addStretch()
+        self._enh_pv_b = self._thumb_label("前期影像预览"); pv.addWidget(self._enh_pv_b)
+        self._enh_pv_a = self._thumb_label("后期影像预览"); pv.addWidget(self._enh_pv_a)
+        pv.addStretch(); ly.addLayout(pv)
+        ly.addStretch()
+        self._enh_before.textChanged.connect(self._update_enh_preview)
+        self._enh_after.textChanged.connect(self._update_enh_preview)
+        # 与单次面板字段双向同步（setText 同值不触发 textChanged，不会死循环）
+        self._link_fields(self._det_before, self._enh_before)
+        self._link_fields(self._det_after, self._enh_after)
+        self._link_fields(self._det_out, self._enh_out)
+        return w
 
     # ── 地物分类 ──
     def _panel_classify(self):
@@ -700,13 +725,25 @@ class MainWindow(QMainWindow):
 
     # ── 增强 ──
     def _r_enhanced(self):
-        b = self._det_before.text().strip(); a = self._det_after.text().strip()
-        o = self._det_out.text().strip() or "result.udbx"
+        b = self._enh_before.text().strip(); a = self._enh_after.text().strip()
+        o = self._enh_out.text().strip() or "result.udbx"
         if not b or not a: return QMessageBox.warning(self, "参数", "请选择前后期影像")
         m = self._tb_model.currentText(); g = self._gpu(); f = self._tb_fmt.currentText()
         cls = self._enh_cls.isChecked()
         try: ma = float(self._enh_ma.text())
         except ValueError: ma = 0
+        # 增强检测同时输出栅格+矢量，仅支持 UDBX：格式选 tif 或输出后缀非 .udbx 时提示并纠正
+        fix_msg = []
+        if f != "udbx":
+            self._tb_fmt.setCurrentText("udbx"); f = "udbx"
+            fix_msg.append("输出格式已自动切换为 udbx")
+        if o.lower().endswith((".tif", ".tiff")):
+            o = os.path.splitext(o)[0] + ".udbx"; self._enh_out.setText(o)
+            fix_msg.append("输出路径后缀已改为 .udbx")
+        if fix_msg:
+            QMessageBox.information(self, "输出格式提示",
+                "增强检测会同时输出变化栅格与矢量多边形，只能保存为 UDBX 格式。\n\n"
+                + "\n".join("• " + x for x in fix_msg))
         self._start("增强检测"); self._log(f"增强检测 | 分类:{cls} 最小面积:{ma}m²", "dim")
         def t(): return run_enhanced_inference(b, a, o, model_key=m, gpu=g,
             classify=cls, min_change_area=ma, smooth=True, batch_size=1, offset=None, out_format=f)
@@ -787,6 +824,62 @@ class MainWindow(QMainWindow):
     def _open_file(self, e, f): p, _ = QFileDialog.getOpenFileName(self, "", "", f); p and e.setText(p)
     def _open_save(self, e, f): p, _ = QFileDialog.getSaveFileName(self, "", "", f); p and e.setText(p)
     def _dir(self, e): p = QFileDialog.getExistingDirectory(self, ""); p and e.setText(p)
+
+    def _thumb_label(self, title):
+        lb = QLabel(title)
+        lb.setFixedSize(300, 170)
+        lb.setAlignment(Qt.AlignCenter)
+        lb.setWordWrap(True)
+        lb.setStyleSheet("background:#1a2332;border:1px solid #2a3a4a;border-radius:6px;"
+                         "color:#7a8a9a;font-size:12px;")
+        return lb
+
+    def _link_fields(self, a, b):
+        a.textChanged.connect(b.setText)
+        b.textChanged.connect(a.setText)
+
+    def _load_raster_thumb(self, path, max_w=300, max_h=170):
+        """读取栅格影像并下采样 + 2%~98% 拉伸为 QPixmap，失败返回 None。"""
+        if not path or not os.path.exists(path):
+            return None
+        try:
+            import numpy as np
+            import rasterio
+            with rasterio.open(path) as src:
+                w, h = src.width, src.height
+                f = max(1, int(max(w / max_w, h / max_h)))
+                arr = src.read(out_shape=(src.count, max(1, h // f), max(1, w // f)))
+            rgb = arr[:3].astype(np.float32)
+            while rgb.shape[0] < 3:
+                rgb = np.concatenate([rgb, rgb[-1:]], axis=0)
+            for i in range(3):
+                band = rgb[i]
+                lo, hi = float(np.percentile(band, 2)), float(np.percentile(band, 98))
+                rgb[i] = np.clip((band - lo) * 255.0 / max(hi - lo, 1.0), 0, 255)
+            rgb = np.ascontiguousarray(rgb.transpose(1, 2, 0).astype(np.uint8))
+            hh, ww, _ = rgb.shape
+            img = QImage(rgb.data, ww, hh, 3 * ww, QImage.Format_RGB888)
+            return QPixmap.fromImage(img).scaled(max_w, max_h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        except Exception:
+            return None
+
+    def _show_thumb(self, label, path, title):
+        if not path:
+            label.setText(title)
+        else:
+            pm = self._load_raster_thumb(path)
+            if pm is not None:
+                label.setPixmap(pm)
+            else:
+                label.setText("无法预览影像")
+
+    def _update_det_preview(self):
+        self._show_thumb(self._det_pv_b, self._det_before.text().strip(), "前期影像预览")
+        self._show_thumb(self._det_pv_a, self._det_after.text().strip(), "后期影像预览")
+
+    def _update_enh_preview(self):
+        self._show_thumb(self._enh_pv_b, self._enh_before.text().strip(), "前期影像预览")
+        self._show_thumb(self._enh_pv_a, self._enh_after.text().strip(), "后期影像预览")
     def _gpu(self):
         try: return int(self._tb_gpu.currentText().split("(")[0])
         except: return 0

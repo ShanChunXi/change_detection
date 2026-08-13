@@ -18,6 +18,13 @@ from typing import Dict, Optional
 
 warnings.filterwarnings("ignore")
 
+# 修复 Windows GBK 控制台下 print 无法编码的字符（✅/² 等）导致 UnicodeEncodeError 崩溃的问题
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(errors="replace")
+    except Exception:
+        pass
+
 # 允许从父目录导入 change_detection 的配置函数
 try:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -88,13 +95,53 @@ def run_classify(
         print("[2/3] 执行分类推理...")
         start_time = datetime.now()
 
-        model.multi_classify_infer(
-            input_data=input_image,
-            out_data=output_raster,
-            out_dataset_name="classify_result",
-            offset=offset,
-            result_type="grid",
-        )
+        # 分类结果是栅格（grid），需先写入临时 UDBX，再导出为 GeoTIFF。
+        # 若直接把 .tif 路径传给 out_data，SuperMap 会把它当成数据源目录，
+        # 在 classify.tif/ 文件夹里生成 classify_result.tif，造成输出路径混乱。
+        tmp_udbx = os.path.splitext(output_raster)[0] + ".udbx"
+        for _ext in ("", ".udbx", ".udd"):
+            _p = tmp_udbx + _ext
+            if os.path.exists(_p):
+                try:
+                    os.remove(_p)
+                except Exception:
+                    pass
+
+        try:
+            model.multi_classify_infer(
+                input_data=input_image,
+                out_data=tmp_udbx,
+                out_dataset_name="classify_result",
+                offset=offset,
+                result_type="grid",
+            )
+        except PermissionError as _pe:
+            # SuperMap 清理临时文件夹失败，但结果已写入临时 UDBX
+            if not os.path.exists(tmp_udbx):
+                raise
+            print(f"      推理完成（临时目录清理失败，可忽略）: {_pe}")
+
+        print("      正在导出为 GeoTIFF...")
+        from iobjectspy import conversion, DatasourceConnectionInfo, Workspace
+        _ws = Workspace()
+        try:
+            _conn = DatasourceConnectionInfo()
+            _conn.set_server(tmp_udbx)
+            _conn.set_driver("UDBX")
+            _ds = _ws.open_datasource(_conn)
+            _dt = _ds["classify_result"]
+            conversion.export_to_tif(_dt, output_raster)
+        finally:
+            _ws.close()
+
+        # 清理临时 UDBX
+        for _ext in ("", ".udbx", ".udd"):
+            _p = tmp_udbx + _ext
+            if os.path.exists(_p):
+                try:
+                    os.remove(_p)
+                except Exception:
+                    pass
 
         elapsed = (datetime.now() - start_time).total_seconds()
         print(f"      耗时: {elapsed:.1f} 秒")
@@ -108,6 +155,14 @@ def run_classify(
 
     except RuntimeError as e:
         print(f"\n[错误] 推理运行时错误: {e}")
+        return False
+    except PermissionError as e:
+        # SuperMap 在结果写出后清理临时文件夹可能抛 PermissionError（临时 tif 仍被占用），
+        # 此时结果其实已生成，按成功处理。
+        if os.path.exists(output_raster):
+            print(f"\n[提示] 结果已写出（SuperMap 临时目录清理失败，可忽略）: {e}")
+            return True
+        print(f"\n[错误] {type(e).__name__}: {e}")
         return False
     except Exception as e:
         print(f"\n[错误] {type(e).__name__}: {e}")
@@ -239,9 +294,10 @@ def run_vectorize(
         except Exception as e:
             print(f"      无法读取字段信息: {e}")
 
-        # 调用 analyst.raster_to_vector（移除错误的 value_field 参数）
+        # 调用 analyst.raster_to_vector（value_field 为必填参数，命名输出矢量中存储栅格值的字段）
         analyst.raster_to_vector(
             input_data=grid_ds,
+            value_field="value",
             out_dataset_type=DatasetType.REGION,
             back_or_no_value=0,
             is_thin_raster=True,
