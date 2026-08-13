@@ -4,7 +4,7 @@
 同学用任何装过 PyQt5 的 Python 即可打开
 """
 
-import sys, os, json
+import sys, os, json, glob
 
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
@@ -20,11 +20,11 @@ FIELDS = [
      "D:/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml"),
 ]
 
-AUTO_PATTERNS = {
-    "python_path":  ["/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe"],
-    "java_home":    ["/supermap/supermap-iobjectsjava-2026-win-all/jre1.8_x64"],
-    "iobjects_bin": ["/supermap/supermap-iobjectsjava-2026-win-all/Bin"],
-    "resources_ml": ["/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml"],
+TARGETS = {
+    "python_path":  (["supermap-iobjectspy-env*"], "conda/python.exe"),
+    "java_home":    (["supermap-iobjectsjava*"], "jre1.8_x64"),
+    "iobjects_bin": (["supermap-iobjectsjava*"], "Bin"),
+    "resources_ml": (["supermap-iobjectspy-resources_ml*"], "resources_ml"),
 }
 
 
@@ -171,42 +171,71 @@ class ConfigWindow(QWidget):
         else:
             sl.setText("❌ 路径不存在"); sl.setStyleSheet("color:#e8544a;font-size:12px;padding-left:170px;")
 
+    def _locate(self, bases, prefixes, sub_rel):
+        """在候选目录列表下按目录名前缀搜索，返回第一个存在 sub_rel 子路径的完整路径。"""
+        for base in bases:
+            if not base:
+                continue
+            for prefix in prefixes:
+                for hit in sorted(glob.glob(os.path.join(base, prefix)), reverse=True):
+                    full = os.path.join(hit, sub_rel)
+                    if os.path.exists(full):
+                        return full.replace("\\", "/")
+        return None
+
+    def _detect(self):
+        """根据已填路径推断盘符与公共根目录，返回每个字段可推断出的路径（不修改界面）。"""
+        hint_drives = []
+        roots = []
+        for e in self.entries.values():
+            t = e.text().strip().replace("\\", "/")
+            if not t:
+                continue
+            if len(t) >= 2 and t[1] == ":":
+                hint_drives.append(t[:2] + "/")
+            parts = t.split("/")
+            for i, seg in enumerate(parts):
+                if seg.lower().startswith("supermap"):
+                    roots.append("/".join(parts[:i]))
+                    break
+
+        drives = []
+        for d in hint_drives + ["F:/", "D:/", "E:/", "C:/"]:
+            if d not in drives:
+                drives.append(d)
+
+        bases = [r for r in roots if r]
+        for d in drives:
+            bases.append(d)
+            bases += [x for x in glob.glob(os.path.join(d, "*")) if os.path.isdir(x)]
+
+        result = {}
+        for key, (prefixes, sub_rel) in TARGETS.items():
+            result[key] = self._locate(bases, prefixes, sub_rel)
+        return result
+
     def _auto(self):
-        drives = ["F:/", "D:/", "E:/", "C:/"]
+        found = self._detect()
         cnt = 0
-        for key, subs in AUTO_PATTERNS.items():
-            found = False
-            for d in drives:
-                for s in subs:
-                    fp = os.path.join(d, s.replace("/", os.sep))
-                    if os.path.exists(fp):
-                        self.entries[key].setText(fp.replace("\\", "/"))
-                        cnt += 1; found = True; break
-                if found: break
+        for key, p in found.items():
+            if p and not self.entries[key].text().strip():
+                self.entries[key].setText(p)
+                cnt += 1
         QMessageBox.information(self, "自动检测",
-            f"找到 {cnt} 个路径，请核对后保存。" if cnt else "未找到标准路径，请手动填写。")
+            f"已自动补全 {cnt} 个路径，请核对后保存。" if cnt else
+            "未找到可匹配的路径，请手动填写，或先填一个有效路径后重试。")
 
     def _save(self):
         cfg = {}
         for k, e in self.entries.items():
             cfg[k] = e.text().strip()
 
-        # 去重：只保存最后一个路径组件
-        # 如果 python_path 是 F:/supermap/.../conda/python.exe，
-        # 则自动推断 java_home / iobjects_bin / resources_ml（如果用户没填）
-        pp = cfg.get("python_path", "")
-        if pp:
-            base = os.path.dirname(os.path.dirname(pp))  # .../conda → .../env根
-            supermap_root = os.path.dirname(base)         # .../env根 → .../supermap安装根
-            if not cfg.get("java_home"):
-                guess = os.path.join(supermap_root, "java", "supermap-iobjectsjava-2026-win-all", "jre1.8_x64")
-                if os.path.exists(guess): cfg["java_home"] = guess.replace("\\", "/")
-            if not cfg.get("iobjects_bin"):
-                guess = os.path.join(supermap_root, "java", "supermap-iobjectsjava-2026-win-all", "Bin")
-                if os.path.exists(guess): cfg["iobjects_bin"] = guess.replace("\\", "/")
-            if not cfg.get("resources_ml"):
-                guess = os.path.join(supermap_root, "resources", "supermap-iobjectspy-resources_ml-2025u1", "resources_ml")
-                if os.path.exists(guess): cfg["resources_ml"] = guess.replace("\\", "/")
+        # 空字段尝试用已填路径推断补全（不再写死 java/ resources/ 子目录和版本号）
+        detected = self._detect()
+        for k, v in cfg.items():
+            if not v and detected.get(k):
+                cfg[k] = detected[k]
+                self.entries[k].setText(cfg[k])
 
         missing = [k for k, v in cfg.items() if not v]
         if missing:

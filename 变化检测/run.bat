@@ -7,7 +7,7 @@ REM  双击启动 → 交互菜单
 REM  首次使用自动引导配置
 REM ============================================================
 
-set "SCRIPT=%~dp0src\change_detection.py"
+set "SCRIPT=%~dp0src\change_detection_ui.py"
 set "CONFIG=%~dp0src\config.json"
 
 REM ---- 1. 找 SuperMap Python ----
@@ -177,7 +177,7 @@ echo.
 
 REM 抑制 JAR 复制输出，只保留 Python 正常输出
 if "%~1"=="" (
-    "%PY%" "%SCRIPT%" menu 2>nul
+    "%PY%" "%SCRIPT%" 2>nul
 ) else (
     "%PY%" "%SCRIPT%" %* 2>nul
 )
@@ -185,7 +185,7 @@ if "%~1"=="" (
 REM 如果 2>nul 导致退出码异常，用 fallback
 if errorlevel 1 (
     if "%~1"=="" (
-        "%PY%" "%SCRIPT%" menu
+        "%PY%" "%SCRIPT%"
     ) else (
         "%PY%" "%SCRIPT%" %*
     )

@@ -3,7 +3,7 @@
 城市变化检测与地图更新工具 — PyQt5 GIS 风格界面
 """
 
-import sys, os, io
+import sys, os, io, glob
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QLineEdit, QComboBox, QTextEdit,
@@ -61,7 +61,7 @@ class Worker(QThread):
             t = line.strip()
             if not t: continue
             if any(k in t for k in ("[OK]", "完成", "✅")): self.log.emit(t, "ok")
-            elif any(k in t for k in ("[错误]", "Error", "❌")): self.log.emit(t, "error")
+            elif any(k in t for k in ("[错误]", "Error", "❌", "[FAIL]")): self.log.emit(t, "error")
             elif any(k in t for k in ("[WARN]", "警告", "⚠")): self.log.emit(t, "warning")
             elif t.startswith(("=", "─", "═")): self.log.emit(t, "header")
             else: self.log.emit(t, "dim")
@@ -163,25 +163,66 @@ class SetupDialog(QDialog):
         p = QFileDialog.getExistingDirectory(self, "选择目录")
         if p: self.entries[k].setText(p.replace("\\", "/"))
 
+    def _locate(self, bases, prefixes, sub_rel):
+        """在候选目录列表下按目录名前缀搜索，返回第一个存在 sub_rel 子路径的完整路径。"""
+        for base in bases:
+            if not base:
+                continue
+            for prefix in prefixes:
+                for hit in sorted(glob.glob(os.path.join(base, prefix)), reverse=True):
+                    full = os.path.join(hit, sub_rel)
+                    if os.path.exists(full):
+                        return full.replace("\\", "/")
+        return None
+
     def _auto(self):
-        drives = ["F:/", "D:/", "E:/", "C:/"]
-        patterns = {
-            "python_path": ["/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe"],
-            "java_home": ["/supermap/supermap-iobjectsjava-2026-win-all/jre1.8_x64"],
-            "iobjects_bin": ["/supermap/supermap-iobjectsjava-2026-win-all/Bin"],
-            "resources_ml": ["/supermap/supermap-iobjectspy-resources_ml-2025u1/resources_ml"],
+        # 1) 从已填写的路径里推断盘符与公共根目录（supermap-* 目录的父目录），作为优先搜索位置
+        hint_drives = []
+        roots = []
+        for e in self.entries.values():
+            t = e.text().strip().replace("\\", "/")
+            if not t:
+                continue
+            if len(t) >= 2 and t[1] == ":":
+                hint_drives.append(t[:2] + "/")
+            parts = t.split("/")
+            for i, seg in enumerate(parts):
+                if seg.lower().startswith("supermap"):
+                    roots.append("/".join(parts[:i]))
+                    break
+
+        drives = []
+        for d in hint_drives + ["F:/", "D:/", "E:/", "C:/"]:
+            if d not in drives:
+                drives.append(d)
+
+        # 2) 每个字段的搜索目标：目录名前缀（不再假设父目录叫 supermap）+ 需存在的子路径
+        targets = {
+            "python_path":  (["supermap-iobjectspy-env*"], "conda/python.exe"),
+            "java_home":    (["supermap-iobjectsjava*"], "jre1.8_x64"),
+            "iobjects_bin": (["supermap-iobjectsjava*"], "Bin"),
+            "resources_ml": (["supermap-iobjectspy-resources_ml*"], "resources_ml"),
         }
+
+        # 3) 候选目录：公共根目录提示 + 各盘符根 + 盘符下一级子目录
+        bases = [r for r in roots if r]
+        for d in drives:
+            bases.append(d)
+            bases += [x for x in glob.glob(os.path.join(d, "*")) if os.path.isdir(x)]
+
+        # 4) 只补全空字段
         cnt = 0
-        for key, subs in patterns.items():
-            for d in drives:
-                for s in subs:
-                    fp = os.path.join(d, s.replace("/", os.sep))
-                    if os.path.exists(fp):
-                        self.entries[key].setText(fp.replace("\\", "/"))
-                        cnt += 1; break
-                if self.entries[key].text(): break
+        for key, (prefixes, sub_rel) in targets.items():
+            e = self.entries[key]
+            if e.text().strip():
+                continue
+            p = self._locate(bases, prefixes, sub_rel)
+            if p:
+                e.setText(p)
+                cnt += 1
         QMessageBox.information(self, "自动检测",
-            f"找到 {cnt} 个路径，请核对保存。" if cnt else "未找到标准路径。")
+            f"已自动补全 {cnt} 个路径，请核对保存。" if cnt else
+            "未找到可匹配的路径，请手动填写，或先填一个有效路径后重试。")
 
     def _save(self):
         cfg = {k: e.text().strip() for k, e in self.entries.items()}
@@ -766,18 +807,17 @@ class MainWindow(QMainWindow):
 
     def _check(self):
         self._log("═"*40, "header"); self._log("环境自检中...", "info")
-        old = sys.stdout; buf = io.StringIO(); sys.stdout = buf
-        try: ok = run_self_check()
-        except Exception as e: self._log(str(e), "error"); ok = False
-        finally: sys.stdout = old
-        for line in buf.getvalue().split("\n"):
-            t = line.strip()
-            if not t: continue
-            if "[OK]" in t: self._log(t, "ok")
-            elif "[FAIL]" in t: self._log(t, "error")
-            elif "[WARN]" in t: self._log(t, "warning")
-            else: self._log(t, "dim")
+        self._start("环境自检")
+        # 自检涉及 import torch / CUDA 初始化，耗时可能很长，必须放到后台线程，否则界面卡死
+        self._worker = Worker(run_self_check)
+        self._worker.log.connect(self._log)
+        self._worker.done.connect(self._check_done)
+        self._worker.start()
+
+    def _check_done(self, ok):
+        self._tb_run.setEnabled(True); self._progress.setVisible(False)
         self._status_lbl.setText("环境就绪" if ok else "配置有误")
+        self._status_lbl.setStyleSheet("color:" + ("#22a65e" if ok else "#e8544a") + ";")
 
     def _load_params(self):
         try:
