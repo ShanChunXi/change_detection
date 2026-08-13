@@ -74,6 +74,7 @@ class Worker(QThread):
 class BatchWorker(QThread):
     log = pyqtSignal(str, str)
     done = pyqtSignal(bool)
+    result = pyqtSignal(object)
 
     def __init__(self, task_csv, config_path, output_dir, report_title):
         super().__init__()
@@ -88,6 +89,7 @@ class BatchWorker(QThread):
                 config_path=self.config_path, output_dir=self.output_dir,
                 report_title=self.report_title, real_mode=True)
             ok = r.get("success", False)
+            self.result.emit(r)
         except Exception as e:
             print(f"[错误] {e}")
         finally:
@@ -332,7 +334,7 @@ class MainWindow(QMainWindow):
 
         # 批量处理
         self.batch_menu = mb.addMenu("批量处理")
-        for name, idx in [("CSV批量", 0), ("文件夹批量", 1), ("任务仪表盘", 2), ("统计报告", 3)]:
+        for name, idx in [("CSV批量", 0), ("文件夹批量", 1), ("任务仪表盘", 2), ("统计报告", 3), ("完整流水线", 4)]:
             a = QAction(name, self)
             a.triggered.connect(lambda _, i=idx: self._switch_panel(M_BATCH, i))
             self.batch_menu.addAction(a)
@@ -402,6 +404,7 @@ class MainWindow(QMainWindow):
         self._batch_panels.addWidget(self._panel_folder())
         self._batch_panels.addWidget(self._panel_dashboard())
         self._batch_panels.addWidget(self._panel_report())
+        self._batch_panels.addWidget(self._panel_pipeline())
         self._panel_stack.addWidget(self._batch_panels)
 
         # 结果工具面板
@@ -581,6 +584,22 @@ class MainWindow(QMainWindow):
         ly.addWidget(g); ly.addStretch()
         self._log("统计报告 — 基于批量处理生成的统计 Excel", "dim"); return w
 
+    def _panel_pipeline(self):
+        w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
+        g = QGroupBox("完整流水线（批量检测 → 统计 → 报告）"); gl = QVBoxLayout(g); gl.setSpacing(8)
+        _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace("\\", "/")
+        self._pipe_csv = QLineEdit(_root + "/output/pipeline/batch_tasks.csv")
+        self._pipe_cfg = QLineEdit(_root + "/output/pipeline/batch_config.json")
+        self._pipe_dir = QLineEdit(_root + "/output/pipeline/run")
+        self._pipe_title = QLineEdit("城市变化检测统计报告")
+        gl.addLayout(self._row("任务清单", self._pipe_csv, lambda: self._open_file(self._pipe_csv, "CSV (*.csv)")))
+        gl.addLayout(self._row("配置文件", self._pipe_cfg, lambda: self._open_file(self._pipe_cfg, "JSON (*.json)")))
+        gl.addLayout(self._row("输出目录", self._pipe_dir, lambda: self._dir(self._pipe_dir)))
+        gl.addLayout(self._row("报告标题", self._pipe_title, lambda: None))
+        gl.addWidget(QLabel("任务清单列：task_id, before_image, after_image, model_name, result_type(tif/udbx), gpu_id, output_path, max_retry, enabled"))
+        ly.addWidget(g); ly.addStretch()
+        self._log("完整流水线 — 一键跑完 批量检测→统计Excel→Word/PDF/图表", "dim"); return w
+
     # ═══════════════════════════════════════════════════
     # 结果工具面板
     # ═══════════════════════════════════════════════════
@@ -684,8 +703,8 @@ class MainWindow(QMainWindow):
             self._tb_run.setText(["▶ 检测", "▶ 增强检测", "▶ 分类", "▶ 转矢量"][sub])
         elif card == M_BATCH:
             self._sub_batch = sub; self._batch_panels.setCurrentIndex(sub)
-            self._tb_run.setText(["▶ CSV批量", "▶ 文件夹批量", "", ""][sub])
-            self._tb_run.setVisible(sub < 2)
+            self._tb_run.setText(["▶ CSV批量", "▶ 文件夹批量", "", "", "▶ 运行流水线"][sub])
+            self._tb_run.setVisible(sub < 2 or sub == 4)
         else:
             self._sub_result = sub; self._result_panels.setCurrentIndex(sub)
             self._tb_run.setText(["▶ 加载预览", "▶ 加载属性", "▶ 精度验证", "▶ 专题图", "▶ 导出"][sub])
@@ -698,7 +717,7 @@ class MainWindow(QMainWindow):
             {0: self._r_single, 1: self._r_enhanced,
              2: self._r_classify, 3: self._r_vectorize}[self._sub_detect]()
         elif self._mode == M_BATCH:
-            {0: self._r_csv, 1: self._r_folder}[self._sub_batch]()
+            {0: self._r_csv, 1: self._r_folder, 4: self._r_pipeline}[self._sub_batch]()
         elif self._mode == M_RESULT:
             {0: self._r_preview, 1: self._r_table, 2: self._r_accuracy,
              3: self._r_thematic, 4: self._r_export}.get(self._sub_result, lambda: self._log("接口预留 — 等待接入", "info"))()
@@ -797,6 +816,79 @@ class MainWindow(QMainWindow):
             gpu=g, classify=cls, min_change_area=0, out_format=f, output_dir=None)
         self._worker = Worker(t); self._worker.log.connect(self._log)
         self._worker.done.connect(lambda ok: self._done(ok, "文件夹批量")); self._worker.start()
+
+    # ── 完整流水线 ──
+    def _r_pipeline(self):
+        csv = self._pipe_csv.text().strip(); cfg = self._pipe_cfg.text().strip()
+        out = self._pipe_dir.text().strip(); title = self._pipe_title.text().strip() or "城市变化检测统计报告"
+        if not csv or not os.path.exists(csv): return QMessageBox.warning(self, "参数", "请选择任务清单 CSV")
+        if not cfg or not os.path.exists(cfg): return QMessageBox.warning(self, "参数", "请选择配置文件 JSON")
+        if not out: return QMessageBox.warning(self, "参数", "请选择输出目录")
+        self._start("完整流水线")
+        self._log(f"任务清单: {csv}\n配置文件: {cfg}\n输出目录: {out}\n报告标题: {title}", "dim")
+        self._bw = BatchWorker(csv, cfg, out, title)
+        self._bw.log.connect(self._log)
+        self._bw.result.connect(self._on_pipeline_result)
+        self._bw.done.connect(lambda ok: self._done(ok, "完整流水线"))
+        self._bw.start()
+
+    def _on_pipeline_result(self, r):
+        if not isinstance(r, dict):
+            return
+        stats = r.get("statistics") or {}
+        excel = stats.get("excel_path") or ""
+        if excel and os.path.exists(excel):
+            self._rpt_xl.setText(excel)
+            self._log(f"统计 Excel 已生成: {excel}", "ok")
+        batch = r.get("batch_detection") or {}
+        status_csv = batch.get("status_table_path") or ""
+        if status_csv:
+            self._fill_dashboard(status_csv)
+        rep = r.get("report") or {}
+        if isinstance(rep, dict):
+            if rep.get("word_path"): self._log(f"Word 报告: {rep.get('word_path')}", "dim")
+            if rep.get("pdf_path"): self._log(f"PDF: {rep.get('pdf_path')}", "dim")
+            if rep.get("chart_dir"): self._log(f"图表目录: {rep.get('chart_dir')}", "dim")
+        if r.get("output_dir"): self._log(f"流水线输出目录: {r.get('output_dir')}", "dim")
+
+    def _fill_dashboard(self, status_csv):
+        import csv as _csv
+        if not status_csv or not os.path.exists(status_csv):
+            return
+        try:
+            with open(status_csv, "r", encoding="utf-8-sig", newline="") as f:
+                rows = list(_csv.DictReader(f))
+        except Exception as e:
+            self._log(f"读取状态表失败: {e}", "error")
+            return
+        trans = {"success": "成功", "failed": "失败", "running": "进行中",
+                 "pending": "待处理", "skipped": "跳过"}
+        tbl = self._dash_tbl
+        tbl.clear(); tbl.setRowCount(len(rows)); tbl.setColumnCount(6)
+        tbl.setHorizontalHeaderLabels(["任务ID", "前期", "后期", "状态", "耗时", "变化统计"])
+        n_ok = n_fail = 0
+        for r, row in enumerate(rows):
+            status = str(row.get("status", ""))
+            if status == "success": n_ok += 1
+            elif status == "failed": n_fail += 1
+            dur = row.get("duration_seconds", "") or ""
+            try:
+                dur = f"{float(dur):.1f}s"
+            except (TypeError, ValueError):
+                pass
+            size = row.get("output_size_bytes", "") or ""
+            try:
+                size = f"{int(size) / 1048576:.1f}MB" if int(size) > 0 else "—"
+            except (TypeError, ValueError):
+                size = "—"
+            vals = [row.get("task_id", ""), row.get("before_image", ""),
+                    row.get("after_image", ""), trans.get(status, status), dur, size]
+            for c, v in enumerate(vals):
+                tbl.setItem(r, c, QTableWidgetItem("" if v is None else str(v)))
+        tbl.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self._dash_total.setText(f"总计: {len(rows)}")
+        self._dash_ok.setText(f"成功: {n_ok}")
+        self._dash_fail.setText(f"失败: {n_fail}")
 
     # ── 专题图 ──
     def _r_thematic(self):

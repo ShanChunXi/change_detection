@@ -28,6 +28,15 @@ classification/classify_result.tif/
 classification/classify_result.udbx
 classification/classify_result.udd
 
+# 测试输出数据集（二进制，不入库）
+变化检测/_field_test.udbx
+变化检测/vectorize.udbx
+地物分类测试样例/classify_vector.udbx
+地物分类测试样例/classify_vector_fixed.udbx
+
+# 批量测试的运行时输出（含本机路径与时间戳，不入库）
+batch_test/out/
+
 # uv / virtual environment
 .venv/
 

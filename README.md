@@ -16,13 +16,27 @@
 | **SuperMap iObjects Java** | `…/jre1.8_x64/` 和 `…/Bin/` | ~4 GB |
 | **ML 资源包** | `…/resources_ml/model/` | ~5 GB |
 
-### 第二步：安装 PyQt5
+### 第二步：安装 Python 依赖
 
-打开终端（PowerShell 或 cmd），用 SuperMap 自带的 Python 装：
+用 SuperMap 自带的 Python 装（`iobjectspy` 推理核心已随 SuperMap Python 内置，无需单独安装）。打开终端（PowerShell 或 cmd）：
 
 ```powershell
-F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe -m pip install PyQt5
+F:/supermap/supermap-iobjectspy-env-gpu-2026-win64/conda/python.exe -m pip install PyQt5 numpy rasterio openpyxl matplotlib Pillow python-docx pywin32
 ```
+
+| 依赖 | 用途 |
+| --- | --- |
+| `iobjectspy` | SuperMap 推理核心（随 SuperMap Python 自带，勿用普通 pip 装） |
+| `PyQt5` | 图形界面 |
+| `numpy` / `rasterio` | 读取变化检测 TIFF，统计像元数 / 变化比例 / 面积 |
+| `openpyxl` | 生成统计 Excel（批量管线统计阶段） |
+| `matplotlib` / `Pillow` | 生成统计图表 PNG（报告阶段） |
+| `python-docx` | 生成 Word 报告（报告阶段） |
+| `pywin32` | 本机装有 Microsoft Word 时，把 Word 转成 PDF（可选，仅 Windows） |
+
+> 完整依赖清单见根目录 `pyproject.toml` 的 `dependencies` 与 `batch/requirements.txt`。SuperMap 自带 Python 版本为 **3.10**（项目要求 `>=3.10,<3.13`）。
+>
+> 若只做基础变化检测，`PyQt5` + `numpy` + `rasterio` 已够；`openpyxl` / `matplotlib` / `Pillow` / `python-docx` 是「批量管线与报告」模块必需，`pywin32` 只在需要导出 PDF 时才用。
 
 ### 第三步：打开图形化配置工具
 
