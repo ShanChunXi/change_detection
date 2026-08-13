@@ -499,7 +499,8 @@ def raster_mask_to_vector(udbx_path: str, dataset_name: str,
 
     try:
         from iobjectspy import (
-            DatasourceConnectionInfo, Workspace, DatasetType, analyst
+            DatasourceConnectionInfo, Workspace, DatasetType, analyst,
+            FieldInfo, FieldType
         )
     except ImportError:
         print("[警告] 无法导入 iobjectspy，跳过矢量转换。")
@@ -520,7 +521,7 @@ def raster_mask_to_vector(udbx_path: str, dataset_name: str,
         try:
             analyst.raster_to_vector(
                 input_data=raster_dt,
-                value_field="类别编码",
+                value_field="value",
                 out_dataset_type=DatasetType.REGION,
                 back_or_no_value=0,
                 is_thin_raster=True,
@@ -558,11 +559,21 @@ def raster_mask_to_vector(udbx_path: str, dataset_name: str,
         vec_count = vec_dt.get_record_count() if hasattr(vec_dt, "get_record_count") else 0
         print(f"  生成 {vec_count} 个变化 polygon")
 
-        # 添加面积字段
+        # 添加面积字段并填充几何面积。
+        # 注意：is_available_field_name 在名字可用（未被占用）时返回 True，需在 True 时创建；
+        # 编辑记录需先 rd.edit() 进入编辑态，再 set_value + update。
         try:
-            if not vec_dt.is_available_field_name("area_m2"):
-                vec_dt.append_field("area_m2", "Double")
-            vec_dt.update_field("area_m2", "SmArea")
+            if vec_dt.is_available_field_name("area_m2"):
+                vec_dt.create_field(FieldInfo("area_m2", FieldType.DOUBLE, caption="面积"))
+            _ard = vec_dt.get_recordset()
+            _ard.move_first()
+            while not _ard.is_eof():
+                _ag = _ard.get_geometry()
+                if _ag is not None and hasattr(_ag, "area"):
+                    _ard.edit()
+                    _ard.set_value("area_m2", _ag.area)
+                    _ard.update()
+                _ard.move_next()
         except Exception:
             pass
 
@@ -695,7 +706,7 @@ def classify_changes_on_vector(
     counts = {"新增建筑": 0, "消失地物": 0, "属性变更": 0, "其他变化": 0, "总计": 0}
 
     try:
-        from iobjectspy import DatasourceConnectionInfo, Workspace
+        from iobjectspy import DatasourceConnectionInfo, Workspace, FieldInfo, FieldType
     except ImportError:
         print("[警告] 无法导入 iobjectspy，跳过变化分类。")
         return False, counts
@@ -736,12 +747,13 @@ def classify_changes_on_vector(
         if before_buildings is None or after_buildings is None:
             print("  [警告] 建筑物分割栅格不可用，所有变化标记为 '未分类'。")
             try:
-                if not vec_dt.is_available_field_name("change_type"):
-                    vec_dt.append_field("change_type", "WText", 20)
+                if vec_dt.is_available_field_name("change_type"):
+                    vec_dt.create_field(FieldInfo("change_type", FieldType.WTEXT, 20, caption="变化类型"))
                 rd = vec_dt.get_recordset()
                 rd.move_first()
                 while not rd.is_eof():
-                    rd.set_field_value("change_type", "未分类")
+                    rd.edit()
+                    rd.set_value("change_type", "未分类")
                     rd.update()
                     rd.move_next()
                 counts["总计"] = vec_dt.get_record_count()
@@ -753,8 +765,8 @@ def classify_changes_on_vector(
         print(f"\n  [变化分类] 正在判断 {vec_dt.get_record_count()} 个变化区域的类型...")
 
         try:
-            if not vec_dt.is_available_field_name("change_type"):
-                vec_dt.append_field("change_type", "WText", 20)
+            if vec_dt.is_available_field_name("change_type"):
+                vec_dt.create_field(FieldInfo("change_type", FieldType.WTEXT, 20, caption="变化类型"))
         except Exception:
             pass
 
@@ -770,42 +782,32 @@ def classify_changes_on_vector(
                 continue
 
             try:
-                center = geom.inner_point
+                center = geom.get_inner_point()
             except Exception:
                 try:
-                    center = geom.get_center()
+                    center = geom.get_label_point()
                 except Exception:
                     rd.move_next()
                     continue
 
+            # 读取多边形内点在前后期建筑物分割栅格上的像元值。
+            # 分割结果是 0/1 二值掩膜：先 xy_to_grid 把地图坐标转成行列号，再 get_value(col,row) 取值。
             before_val = 0
             try:
-                px, py_line = center.x, center.y
-                try:
-                    before_val = before_buildings.get_value(0, py_line, px)
-                except Exception:
-                    try:
-                        before_val = before_buildings.get_pixel_value(px, py_line)
-                    except Exception:
-                        before_val = 0
+                _col, _row = before_buildings.xy_to_grid(center)
+                before_val = before_buildings.get_value(int(_col), int(_row))
             except Exception:
                 before_val = 0
 
             after_val = 0
             try:
-                px, py_line = center.x, center.y
-                try:
-                    after_val = after_buildings.get_value(0, py_line, px)
-                except Exception:
-                    try:
-                        after_val = after_buildings.get_pixel_value(px, py_line)
-                    except Exception:
-                        after_val = 0
+                _col, _row = after_buildings.xy_to_grid(center)
+                after_val = after_buildings.get_value(int(_col), int(_row))
             except Exception:
                 after_val = 0
 
-            b_has = before_val >= 128
-            a_has = after_val >= 128
+            b_has = before_val >= 0.5
+            a_has = after_val >= 0.5
 
             if not b_has and a_has:
                 change_type = "新增建筑"
@@ -817,7 +819,8 @@ def classify_changes_on_vector(
                 change_type = "其他变化"
 
             try:
-                rd.set_field_value("change_type", change_type)
+                rd.edit()
+                rd.set_value("change_type", change_type)
                 rd.update()
                 counts[change_type] += 1
             except Exception:
@@ -1024,19 +1027,20 @@ def run_enhanced_inference(
             else:
                 print(f"\n  [4/4] 变化类型分类 — 跳过（建筑物分割不可用）")
                 try:
-                    from iobjectspy import DatasourceConnectionInfo, Workspace
+                    from iobjectspy import DatasourceConnectionInfo, Workspace, FieldInfo, FieldType
                     _ws = Workspace()
                     try:
                         _conn = DatasourceConnectionInfo()
                         _conn.set_server(tmp_udbx)
                         _ds = _ws.open_datasource(_conn)
                         _dt = _ds[vec_ds_name]
-                        if not _dt.is_available_field_name("change_type"):
-                            _dt.append_field("change_type", "WText", 20)
+                        if _dt.is_available_field_name("change_type"):
+                            _dt.create_field(FieldInfo("change_type", FieldType.WTEXT, 20, caption="变化类型"))
                         _rd = _dt.get_recordset()
                         _rd.move_first()
                         while not _rd.is_eof():
-                            _rd.set_field_value("change_type", "未分类")
+                            _rd.edit()
+                            _rd.set_value("change_type", "未分类")
                             _rd.update()
                             _rd.move_next()
                         result["change_stats"]["classification"] = {
@@ -1519,6 +1523,120 @@ def run_folder_batch(
 
     bp.save_report()
     return ok
+
+
+# ============================================================================
+# 4.8 多格式导出
+# ============================================================================
+
+def export_vector_multiformat(
+    udbx_path: str,
+    output_dir: str,
+    formats: List[str],
+    vector_dataset: Optional[str] = None,
+    raster_dataset: Optional[str] = None,
+) -> Tuple[bool, dict]:
+    """将 UDBX 结果导出为多种格式。
+
+    formats 支持: geojson / shp(shapefile) / kml / csv / tif(geotiff)
+    矢量格式导出第一个矢量数据集（如 change_polygons），GeoTIFF 导出第一个栅格数据集（变化掩膜）。
+    返回 (是否至少成功一项, {格式: 输出路径或失败原因})。
+    """
+    results: Dict[str, str] = {}
+    if not os.path.exists(udbx_path):
+        print(f"\n[错误] 数据源不存在: {udbx_path}")
+        return False, results
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        from iobjectspy import DatasourceConnectionInfo, Workspace, conversion, DatasetVector
+    except ImportError:
+        print("[警告] 无法导入 iobjectspy，导出失败。")
+        return False, results
+
+    ws = Workspace()
+    try:
+        conn = DatasourceConnectionInfo()
+        conn.set_server(udbx_path)
+        conn.set_driver("UDBX")
+        ds = ws.open_datasource(conn)
+
+        vec_dt = None
+        raster_dt = None
+        for d in ds.datasets:
+            if vector_dataset and d.name == vector_dataset:
+                vec_dt = d
+            if raster_dataset and d.name == raster_dataset:
+                raster_dt = d
+            if vec_dt is None and isinstance(d, DatasetVector):
+                vec_dt = d
+            if raster_dt is None and not isinstance(d, DatasetVector):
+                raster_dt = d
+
+        base = os.path.splitext(os.path.basename(udbx_path))[0]
+
+        for fmt in formats:
+            fmt = (fmt or "").lower().strip()
+            try:
+                if fmt in ("geojson", "json"):
+                    if vec_dt is None:
+                        results[fmt] = "无矢量数据集"
+                        continue
+                    out = os.path.join(output_dir, f"{base}.geojson")
+                    conversion.export_to_geojson(vec_dt, out, is_over_write=True)
+                    results[fmt] = out
+                elif fmt in ("shp", "shapefile"):
+                    if vec_dt is None:
+                        results[fmt] = "无矢量数据集"
+                        continue
+                    out = os.path.join(output_dir, f"{base}.shp")
+                    conversion.export_to_shape(vec_dt, out, is_over_write=True)
+                    results[fmt] = out
+                elif fmt == "kml":
+                    if vec_dt is None:
+                        results[fmt] = "无矢量数据集"
+                        continue
+                    out = os.path.join(output_dir, f"{base}.kml")
+                    conversion.export_to_kml(vec_dt, out, is_over_write=True)
+                    results[fmt] = out
+                elif fmt == "csv":
+                    if vec_dt is None:
+                        results[fmt] = "无矢量数据集"
+                        continue
+                    out = os.path.join(output_dir, f"{base}.csv")
+                    conversion.export_to_csv(vec_dt, out, is_over_write=True)
+                    results[fmt] = out
+                elif fmt in ("tif", "tiff", "geotiff"):
+                    if raster_dt is None:
+                        results[fmt] = "无栅格数据集"
+                        continue
+                    out = os.path.join(output_dir, f"{base}_mask.tif")
+                    conversion.export_to_tif(raster_dt, out, is_over_write=True)
+                    results[fmt] = out
+                else:
+                    results[fmt] = "不支持的格式"
+            except Exception as e:
+                results[fmt] = f"失败: {e}"
+
+        print("\n  导出结果:")
+        any_ok = False
+        for fmt, r in results.items():
+            # 导出可能静默失败（如 KML 要求地理坐标系，返回 False 但不抛异常），
+            # 因此用「输出文件是否真实存在」作为成功判据。
+            ok = isinstance(r, str) and os.path.exists(r)
+            any_ok = any_ok or ok
+            print(f"    [{fmt}] {'[OK]' if ok else '[--]'} {r}")
+        return any_ok, results
+
+    except Exception as e:
+        print(f"[错误] 导出异常: {e}")
+        return False, results
+    finally:
+        try:
+            ws.close()
+        except Exception:
+            pass
 
 
 # ============================================================================

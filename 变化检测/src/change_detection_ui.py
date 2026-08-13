@@ -20,6 +20,7 @@ from change_detection import (
     run_self_check, run_single_inference, run_enhanced_inference,
     run_batch_inference, run_folder_batch, AVAILABLE_MODELS,
     load_config, save_config, _remember_last_params,
+    export_vector_multiformat,
 )
 from classify_vectorize import run_classify, run_vectorize
 from mapper import generate_thematic_map
@@ -32,7 +33,7 @@ else:
     _BATCH_DIR = os.path.join(_PROJECT_ROOT, "batch", "01_源代码")
 if _BATCH_DIR not in sys.path:
     sys.path.insert(0, _BATCH_DIR)
-from li_batch_api import run_full_pipeline
+from li_batch_api import run_full_pipeline, generate_report
 
 
 # ═══════════════════════════════════════════════════════════
@@ -42,6 +43,7 @@ from li_batch_api import run_full_pipeline
 class Worker(QThread):
     log = pyqtSignal(str, str)
     done = pyqtSignal(bool)
+    result = pyqtSignal(object)
 
     def __init__(self, fn, args=(), kw=None):
         super().__init__()
@@ -53,6 +55,7 @@ class Worker(QThread):
         try:
             r = self.fn(*self.args, **self.kw)
             ok = r[0] if isinstance(r, tuple) else bool(r)
+            self.result.emit(r)
         except Exception as e:
             print(f"[错误] {e}")
         finally:
@@ -572,10 +575,11 @@ class MainWindow(QMainWindow):
         for t in ["生成Excel", "生成Word", "导出PDF", "生成图表"]:
             b = QPushButton(t); b.setStyleSheet("QPushButton{background:#e8ecf2;border:1px solid #c8ced6;"
                 "border-radius:3px;padding:6px 16px;}QPushButton:hover{background:#d5dce6;}")
+            b.clicked.connect(lambda _, tt=t: self._r_report(tt))
             br.addWidget(b)
         br.addStretch(); gl.addLayout(br)
         ly.addWidget(g); ly.addStretch()
-        self._log("[接口] 统计报告 — 等待接入", "dim"); return w
+        self._log("统计报告 — 基于批量处理生成的统计 Excel", "dim"); return w
 
     # ═══════════════════════════════════════════════════
     # 结果工具面板
@@ -595,7 +599,7 @@ class MainWindow(QMainWindow):
         cr.addWidget(QLabel("T2:")); cr.addWidget(self._pv_a, 1)
         cr.addWidget(QLabel("结果:")); cr.addWidget(self._pv_r, 1)
         gl.addLayout(cr); ly.addWidget(g); ly.addStretch()
-        self._log("[接口] 影像对比 — 等待接入", "dim"); return w
+        self._log("影像对比 — 选择 T1/T2 后点击运行", "dim"); return w
 
     def _panel_table(self):
         w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
@@ -611,7 +615,7 @@ class MainWindow(QMainWindow):
         self._tbl_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         gl.addWidget(self._tbl_table)
         ly.addWidget(g); ly.addStretch()
-        self._log("[接口] 属性浏览 — 等待接入", "dim"); return w
+        self._log("属性浏览 — 选择数据源后点击运行", "dim"); return w
 
     def _panel_accuracy(self):
         w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
@@ -696,7 +700,8 @@ class MainWindow(QMainWindow):
         elif self._mode == M_BATCH:
             {0: self._r_csv, 1: self._r_folder}[self._sub_batch]()
         elif self._mode == M_RESULT:
-            {3: self._r_thematic}.get(self._sub_result, lambda: self._log("接口预留 — 等待接入", "info"))()
+            {0: self._r_preview, 1: self._r_table, 2: self._r_accuracy,
+             3: self._r_thematic, 4: self._r_export}.get(self._sub_result, lambda: self._log("接口预留 — 等待接入", "info"))()
 
     def _start(self, name):
         self._tb_run.setEnabled(False); self._progress.setVisible(True)
@@ -807,6 +812,131 @@ class MainWindow(QMainWindow):
             return False
         self._worker = Worker(t); self._worker.log.connect(self._log)
         self._worker.done.connect(lambda ok: self._done(ok, "专题图")); self._worker.start()
+
+    # ── 多格式导出 ──
+    def _r_export(self):
+        u = self._exp_udbx.text().strip(); d = self._exp_dir.text().strip()
+        if not u or not os.path.exists(u): return QMessageBox.warning(self, "参数", "请选择UDBX数据源")
+        if not d: return QMessageBox.warning(self, "参数", "请选择输出目录")
+        fmts = []
+        for cb, name in [(self._exp_geojson, "geojson"), (self._exp_shp, "shp"),
+                         (self._exp_kml, "kml"), (self._exp_csv, "csv"),
+                         (self._exp_tif, "tif")]:
+            if cb.isChecked():
+                fmts.append(name)
+        if not fmts:
+            return QMessageBox.warning(self, "参数", "请至少勾选一种导出格式")
+        self._start("导出"); self._log(f"数据源: {u}\n输出目录: {d}\n格式: {', '.join(fmts)}", "dim")
+        def t(): return export_vector_multiformat(u, d, fmts)
+        self._worker = Worker(t); self._worker.log.connect(self._log)
+        self._worker.done.connect(lambda ok: self._done(ok, "导出")); self._worker.start()
+
+    # ── 属性浏览 ──
+    def _r_table(self):
+        u = self._tbl_udbx.text().strip()
+        if not u or not os.path.exists(u): return QMessageBox.warning(self, "参数", "请选择UDBX数据源")
+        ds_name = self._tbl_ds.currentText().strip()
+        self._start("加载属性")
+        self._log(f"数据源: {u}\n数据集: {ds_name}", "dim")
+        def t():
+            from iobjectspy import DatasourceConnectionInfo, Workspace, DatasetVector
+            ws = Workspace(); conn = DatasourceConnectionInfo()
+            conn.set_server(u); conn.set_driver("UDBX")
+            try:
+                ds = ws.open_datasource(conn)
+                vec = None
+                for d in ds.datasets:
+                    if d.name == ds_name and isinstance(d, DatasetVector):
+                        vec = d; break
+                if vec is None:
+                    vec = next((d for d in ds.datasets if isinstance(d, DatasetVector)), None)
+                if vec is None:
+                    print("[错误] 未找到矢量数据集")
+                    return None
+                fields = [f.name for f in vec.field_infos]
+                rows = []
+                rd = vec.get_recordset(); rd.move_first()
+                n = 0
+                while not rd.is_eof() and n < 500:
+                    rows.append([rd.get_value(f) for f in fields])
+                    rd.move_next(); n += 1
+                print(f"[OK] 读取 {len(rows)} 条记录，字段: {fields}")
+                return {"rows": rows, "fields": fields}
+            finally:
+                ws.close()
+        self._worker = Worker(t); self._worker.log.connect(self._log)
+        self._worker.result.connect(self._on_table_result)
+        self._worker.done.connect(lambda ok: self._done(ok, "属性浏览")); self._worker.start()
+
+    def _on_table_result(self, data):
+        if not isinstance(data, dict) or "rows" not in data:
+            return
+        self._fill_table(data["rows"], data["fields"])
+
+    def _fill_table(self, rows, fields):
+        tbl = self._tbl_table
+        tbl.clear(); tbl.setColumnCount(len(fields)); tbl.setHorizontalHeaderLabels(fields)
+        tbl.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            for c, v in enumerate(row):
+                it = QTableWidgetItem("" if v is None else str(v))
+                tbl.setItem(r, c, it)
+
+    # ── 影像对比 ──
+    def _r_preview(self):
+        b = self._pv_b.text().strip(); a = self._pv_a.text().strip()
+        if not b and not a:
+            return QMessageBox.warning(self, "参数", "请至少选择 T1 或 T2 影像路径")
+        dlg = QDialog(self); dlg.setWindowTitle("影像对比")
+        dlg.setMinimumSize(760, 400)
+        lay = QVBoxLayout(dlg); row = QHBoxLayout()
+        for title, path in [("前期 T1", b), ("后期 T2", a)]:
+            col = QVBoxLayout(); col.addWidget(QLabel(title, alignment=Qt.AlignCenter))
+            pix = self._load_raster_thumb(path, max_w=350, max_h=290)
+            lb = QLabel(); lb.setAlignment(Qt.AlignCenter)
+            lb.setFixedSize(350, 290)
+            if pix is None:
+                lb.setText("（无法加载影像）"); lb.setStyleSheet("color:#7a8a9a;border:1px dashed #c0c8d2;border-radius:4px;")
+            else:
+                lb.setPixmap(pix); lb.setStyleSheet("border:1px solid #dce3ec;border-radius:4px;")
+            col.addWidget(lb); row.addLayout(col)
+        lay.addLayout(row)
+        btn = QPushButton("关闭"); btn.clicked.connect(dlg.accept)
+        bwrap = QHBoxLayout(); bwrap.addStretch(); bwrap.addWidget(btn)
+        lay.addLayout(bwrap)
+        dlg.exec_()
+
+    # ── 精度验证 ──（由李晨曦负责，暂未接入）
+    def _r_accuracy(self):
+        self._log("精度验证模块由李晨曦负责开发，暂未接入本界面。", "warning")
+        QMessageBox.information(self, "精度验证", "精度验证模块由李晨曦负责开发，暂未接入本界面。")
+
+    # ── 统计报告 ──（基于 li_batch_api 的统计 Excel 生成 Word/PDF/图表）
+    def _r_report(self, kind):
+        xl = self._rpt_xl.text().strip()
+        title = self._rpt_title.text().strip() or "城市变化检测统计报告"
+        if kind == "生成Excel":
+            # 统计 Excel 由批量处理流水线（run_full_pipeline）自动生成，
+            # 此面板仅做后续的 Word/PDF/图表生成。
+            return QMessageBox.information(self, "生成Excel",
+                "统计 Excel 在「批量处理」流水线中自动生成。\n"
+                "请在「统计 Excel」处选择已生成的 .xlsx 文件，再生成 Word/PDF/图表。")
+        if not xl or not os.path.exists(xl):
+            return QMessageBox.warning(self, "参数", "请选择已生成的「统计 Excel」（.xlsx）")
+        out_dir = os.path.dirname(xl) or "."
+        self._start(f"生成{kind}")
+        self._log(f"统计 Excel: {xl}\n报告标题: {title}\n输出目录: {out_dir}", "dim")
+        def t():
+            r = generate_report(xl, out_dir, title)
+            ok = bool(r.get("success")) if isinstance(r, dict) else bool(r)
+            if ok:
+                print("[OK] 报告生成完成")
+            else:
+                st = r.get("status", "") if isinstance(r, dict) else r
+                print(f"[错误] 报告生成未成功: {st}")
+            return ok
+        self._worker = Worker(t); self._worker.log.connect(self._log)
+        self._worker.done.connect(lambda ok: self._done(ok, f"生成{kind}")); self._worker.start()
 
     # ═══════════════════════════════════════════════════
     # 辅助
