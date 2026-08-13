@@ -410,6 +410,24 @@ def run_single_inference(
 # 4. 批处理
 # ============================================================================
 
+def _read_csv_rows(csv_path: str) -> List[List[str]]:
+    """读取 CSV 任务清单，自动识别编码（utf-8-sig / gbk / utf-8）。
+
+    解决不同来源 CSV 编码不统一导致的中文乱码问题：
+    - utf-8-sig：带 BOM 的 UTF-8（Excel「CSV UTF-8」、程序用 utf-8-sig 写出）
+    - gbk：简体中文 Windows 默认（Excel「CSV (逗号分隔)」另存为）
+    - utf-8：纯 UTF-8 无 BOM（记事本 / 程序生成）
+    """
+    import csv
+    for enc in ("utf-8-sig", "gbk", "utf-8"):
+        try:
+            with open(csv_path, "r", encoding=enc, newline="") as f:
+                return list(csv.reader(f))
+        except UnicodeDecodeError:
+            continue
+    raise UnicodeDecodeError(f"无法识别 CSV 编码: {csv_path}")
+
+
 def run_batch_inference(
     csv_path: str,
     model_key: str = "building",
@@ -427,16 +445,14 @@ def run_batch_inference(
         return False
 
     tasks: List[Tuple[str, ...]] = []
-    with open(csv_path, "r", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if not row or row[0].startswith("#"):
-                continue
-            row = [c.strip() for c in row]
-            if len(row) < 3:
-                print(f"[警告] 跳过不完整行: {row}")
-                continue
-            tasks.append(tuple(row))
+    for row in _read_csv_rows(csv_path):
+        if not row or row[0].startswith("#"):
+            continue
+        row = [c.strip() for c in row]
+        if len(row) < 3:
+            print(f"[警告] 跳过不完整行: {row}")
+            continue
+        tasks.append(tuple(row))
 
     if not tasks:
         print("[警告] CSV 文件中没有有效任务。")
@@ -1280,17 +1296,14 @@ class FolderBatchProcessor:
                     task = self._make_task(before, after, name)
                     self.tasks.append(task)
         elif os.path.exists(csv_path):
-            import csv
-            with open(csv_path, "r", encoding="utf-8") as f:
-                reader = csv.reader(f)
-                for i, row in enumerate(reader):
-                    if not row or row[0].startswith("#"):
-                        continue
-                    row = [c.strip() for c in row]
-                    if len(row) >= 2:
-                        name = row[2] if len(row) >= 3 else f"task_{i+1:03d}"
-                        task = self._make_task(row[0], row[1], name)
-                        self.tasks.append(task)
+            for i, row in enumerate(_read_csv_rows(csv_path)):
+                if not row or row[0].startswith("#"):
+                    continue
+                row = [c.strip() for c in row]
+                if len(row) >= 2:
+                    name = row[2] if len(row) >= 3 else f"task_{i+1:03d}"
+                    task = self._make_task(row[0], row[1], name)
+                    self.tasks.append(task)
         else:
             print(f"[错误] 找不到 pairs.json 或 pairs.csv")
 

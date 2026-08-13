@@ -9,9 +9,24 @@ import os
 import random
 import time
 
-# ====== 把 Java 加到 PATH 里 ======
-os.environ["PATH"] = r"D:/supermap安装包/java/supermap-iobjectsjava-2026-win-all/jre1.8_x64/bin" + ";" + os.environ.get(
-    "PATH", "")
+# ====== 从 config.json 读取 Java 路径（避免硬编码本机路径） ======
+def _load_java_env():
+    """读取与 change_detection 同目录的 config.json 里的 Java 路径。"""
+    cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+    try:
+        import json
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        return cfg.get("java_home", ""), cfg.get("iobjects_bin", "")
+    except Exception:
+        return "", ""
+
+
+_JAVA_HOME, _IOBJECTS_BIN = _load_java_env()
+
+if _JAVA_HOME:
+    os.environ["JAVA_HOME"] = _JAVA_HOME
+    os.environ["PATH"] = os.path.join(_JAVA_HOME, "bin") + ";" + os.environ.get("PATH", "")
 # =================================
 
 from iobjectspy import DatasourceConnectionInfo, Datasource, env
@@ -47,9 +62,11 @@ def generate_thematic_map(
     """
     生成专题图（含图例+比例尺+边框+指北针）
     """
-    # Java环境配置
-    os.environ["JAVA_HOME"] = r"D:/supermap安装包/java/supermap-iobjectsjava-2026-win-all/jre1.8_x64"
-    env.set_iobjects_java_path(r"D:/supermap安装包/java/supermap-iobjectsjava-2026-win-all/Bin")
+    # Java环境配置（从 config.json 读取，避免硬编码本机路径）
+    if _JAVA_HOME:
+        os.environ["JAVA_HOME"] = _JAVA_HOME
+    if _IOBJECTS_BIN:
+        env.set_iobjects_java_path(_IOBJECTS_BIN)
 
     temp_path = output_image.replace(".png", f"_temp_{str(int(time.time() * 1000))[-6:]}.png")
 

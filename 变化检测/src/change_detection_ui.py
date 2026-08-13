@@ -665,7 +665,7 @@ class MainWindow(QMainWindow):
     def _panel_thematic(self):
         w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
         g = QGroupBox("专题图"); gl = QVBoxLayout(g); gl.setSpacing(8)
-        self._thm_udbx = QLineEdit(); self._thm_out = QLineEdit("专题图.png")
+        self._thm_udbx = QLineEdit(); self._thm_out = QLineEdit(os.path.join(_PROJECT_ROOT, "thematic_map", "专题图.png"))
         gl.addLayout(self._row("数据源", self._thm_udbx,
             lambda: self._open_file(self._thm_udbx, "UDBX (*.udbx)")))
         gl.addLayout(self._row("输出图片", self._thm_out,
