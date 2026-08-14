@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
         self._mode = M_DETECT
         self._sub_detect = 0   # 0=单次 1=增强 2=分类 3=矢量
         self._sub_batch = 0    # 0=CSV 1=文件夹 2=仪表盘 3=报告
-        self._sub_result = 0   # 0=对比 1=属性 2=精度 3=专题 4=导出
+        self._sub_result = 0   # 0=对比 1=属性 2=专题 3=导出
 
         self._build_menubar()
         self._build_toolbar()
@@ -341,7 +341,7 @@ class MainWindow(QMainWindow):
 
         # 结果工具
         self.result_menu = mb.addMenu("结果工具")
-        for name, idx in [("影像对比", 0), ("属性浏览", 1), ("精度验证", 2), ("专题图", 3), ("导出", 4)]:
+        for name, idx in [("影像对比", 0), ("属性浏览", 1), ("专题图", 2), ("导出", 3)]:
             a = QAction(name, self)
             a.triggered.connect(lambda _, i=idx: self._switch_panel(M_RESULT, i))
             self.result_menu.addAction(a)
@@ -411,7 +411,6 @@ class MainWindow(QMainWindow):
         self._result_panels = QStackedWidget()
         self._result_panels.addWidget(self._panel_preview())
         self._result_panels.addWidget(self._panel_table())
-        self._result_panels.addWidget(self._panel_accuracy())
         self._result_panels.addWidget(self._panel_thematic())
         self._result_panels.addWidget(self._panel_export())
         self._panel_stack.addWidget(self._result_panels)
@@ -636,32 +635,6 @@ class MainWindow(QMainWindow):
         ly.addWidget(g); ly.addStretch()
         self._log("属性浏览 — 选择数据源后点击运行", "dim"); return w
 
-    def _panel_accuracy(self):
-        w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
-        g = QGroupBox("精度验证"); gl = QVBoxLayout(g); gl.setSpacing(8)
-        self._acc_det = QLineEdit(); self._acc_gt = QLineEdit()
-        gl.addLayout(self._row("检测结果", self._acc_det,
-            lambda: self._open_file(self._acc_det, "UDBX (*.udbx)")))
-        gl.addLayout(self._row("真值数据", self._acc_gt,
-            lambda: self._open_file(self._acc_gt, "矢量 (*.udbx *.shp)")))
-        th_r = QHBoxLayout(); th_r.addWidget(QLabel("IoU阈值"))
-        self._acc_th = QDoubleSpinBox(); self._acc_th.setRange(0.1, 1.0)
-        self._acc_th.setValue(0.5); self._acc_th.setSingleStep(0.05)
-        th_r.addWidget(self._acc_th); th_r.addStretch(); gl.addLayout(th_r)
-        # 指标卡片
-        g2 = QGroupBox("指标"); gl2 = QGridLayout(g2); gl2.setSpacing(8)
-        self._acc_lbls = {}
-        for idx, (name, _) in enumerate([("IoU","交集/并集"),("Precision","精确率"),
-            ("Recall","召回率"),("F1","F1值"),("OA","总体精度"),("Kappa","Kappa")]):
-            f = QFrame(); f.setStyleSheet("background:#f8f9fb;border:1px solid #dce3ec;border-radius:4px;padding:12px;")
-            fl = QVBoxLayout(f); fl.setAlignment(Qt.AlignCenter)
-            vl = QLabel("--"); vl.setStyleSheet("font-size:22px;font-weight:bold;color:#4a7cf7;")
-            vl.setAlignment(Qt.AlignCenter); fl.addWidget(vl)
-            fl.addWidget(QLabel(name, alignment=Qt.AlignCenter))
-            self._acc_lbls[name] = vl; gl2.addWidget(f, idx//3, idx%3)
-        gl.addWidget(g2); ly.addWidget(g); ly.addStretch()
-        self._log("[接口] 精度验证 — 李晨曦", "warning"); return w
-
     def _panel_thematic(self):
         w = QWidget(); ly = QVBoxLayout(w); ly.setContentsMargins(20, 16, 20, 16); ly.setSpacing(10)
         g = QGroupBox("专题图"); gl = QVBoxLayout(g); gl.setSpacing(8)
@@ -707,7 +680,7 @@ class MainWindow(QMainWindow):
             self._tb_run.setVisible(sub < 2 or sub == 4)
         else:
             self._sub_result = sub; self._result_panels.setCurrentIndex(sub)
-            self._tb_run.setText(["▶ 加载预览", "▶ 加载属性", "▶ 精度验证", "▶ 专题图", "▶ 导出"][sub])
+            self._tb_run.setText(["▶ 加载预览", "▶ 加载属性", "▶ 专题图", "▶ 导出"][sub])
 
     # ═══════════════════════════════════════════════════
     # 运行
@@ -719,8 +692,8 @@ class MainWindow(QMainWindow):
         elif self._mode == M_BATCH:
             {0: self._r_csv, 1: self._r_folder, 4: self._r_pipeline}[self._sub_batch]()
         elif self._mode == M_RESULT:
-            {0: self._r_preview, 1: self._r_table, 2: self._r_accuracy,
-             3: self._r_thematic, 4: self._r_export}.get(self._sub_result, lambda: self._log("接口预留 — 等待接入", "info"))()
+            {0: self._r_preview, 1: self._r_table,
+             2: self._r_thematic, 3: self._r_export}.get(self._sub_result, lambda: self._log("接口预留 — 等待接入", "info"))()
 
     def _start(self, name):
         self._tb_run.setEnabled(False); self._progress.setVisible(True)
@@ -997,11 +970,6 @@ class MainWindow(QMainWindow):
         bwrap = QHBoxLayout(); bwrap.addStretch(); bwrap.addWidget(btn)
         lay.addLayout(bwrap)
         dlg.exec_()
-
-    # ── 精度验证 ──（由李晨曦负责，暂未接入）
-    def _r_accuracy(self):
-        self._log("精度验证模块由李晨曦负责开发，暂未接入本界面。", "warning")
-        QMessageBox.information(self, "精度验证", "精度验证模块由李晨曦负责开发，暂未接入本界面。")
 
     # ── 统计报告 ──（基于 li_batch_api 的统计 Excel 生成 Word/PDF/图表）
     def _r_report(self, kind):
