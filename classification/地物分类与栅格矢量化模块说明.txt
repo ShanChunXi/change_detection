@@ -13,7 +13,7 @@
 - 支持常规遥感栅格影像（.tif、.img 等格式）输入。
 - 输出矢量数据集统一命名为 vector_result
 ============================================================
-一、模块核心功能详情（classify+vetorize.py）
+一、模块核心功能详情（classify_vectorize.py）
 ============================================================
 【函数】run_classify(input_image, output_raster, model_key, gpu, batch_size, offset)
 功能：
@@ -28,14 +28,14 @@ offset        (int)  : 滑动窗口重叠像素，兜底默认128，优先读取
 返回值：
 bool: True 推理成功，False 推理失败/文件不存在/模型加载异常
 输出产物：
-指定路径下的分类栅格影像，影像像素值对应地物类别编码（1-建筑、2-道路、3-水体），为后续矢量化提供基础数据。
+指定路径下的分类栅格影像，影像像素值对应地物类别编码（0-背景、1-建筑、2-耕地、3-水体、4-道路、5-裸土、6-林地、7-草地），为后续矢量化提供基础数据。
 【函数】run_vectorize(input_raster, output_vector, class_map_json, min_area, simplify_tolerance)
 功能：
 将深度学习分类栅格批量转换为面矢量数据集，自动创建标准化属性表，支持自定义类别映射、细碎无效图斑过滤、矢量边界平滑简化，输出标准 UDBX 矢量文件。
 参数：
 input_raster        (str)  : 输入分类栅格路径（由 run_classify 函数生成）
 output_vector       (str)  : 输出矢量数据源路径（支持 .udbx、.shp），不指定则自动生成默认路径
-class_map_json      (str)  : JSON 格式类别映射字符串，默认内置 1→建筑、2→道路、3→水体，无需手动传参
+class_map_json      (str)  : JSON 格式类别映射字符串，默认内置 8 类（1→建筑、2→耕地、3→水体、4→道路、5→裸土、6→林地、7→草地、0/255→背景），无需手动传参
 min_area            (float): 最小图斑保留面积（单位：平方米），小于该阈值的细碎图斑自动过滤删除，默认 0.0（不过滤）
 simplify_tolerance  (float): 矢量边界简化容差（单位：米），用于平滑锯齿边界，默认 0.0（不简化）
 返回值：
@@ -43,17 +43,17 @@ bool: True 矢量化成功，False 文件缺失/转换异常/参数错误
 输出产物：
 输出矢量数据源，内置唯一矢量数据集vector_result，适配后续交叉分析模块标准，内置属性字段如下：
 - 类别编码（整型）：栅格原始像素分类编码
-- 类别（文本）：地物类别名称（字段自动创建，可通过桌面端批量赋值）
+- 类别（文本）：地物类别名称（矢量化时自动按类别编码填充）
 - 面积（双精度）：单图斑实际占地面积（平方米）
 - SmArea（双精度）：SuperMap 系统自动计算面积（备用校验字段）
 - 系统默认字段：SmID、SmUserID、SmGeometry 等基础字段
 【命令行用法示例】
 # 1. 遥感影像地物分类推理
-python classify+vetorize.py classify -i input.tif -o classify.tif --gpu 0
+python classify_vectorize.py classify -i input.tif -o classify.tif --gpu 0
 # 2. 分类栅格转矢量（默认参数、自动输出路径）
-python classify+vetorize.py vectorize -r classify.tif
+python classify_vectorize.py vectorize -r classify.tif
 # 3. 自定义参数矢量化（过滤小图斑+边界平滑+指定输出路径）
-python classify+vetorize.py vectorize -r classify.tif -o vector.udbx --min-area 50 --simplify 0.5
+python classify_vectorize.py vectorize -r classify.tif -o vector.udbx --min-area 50 --simplify 0.5
 ============================================================
 二、对外标准化接口说明
 ============================================================
@@ -99,13 +99,13 @@ ok = run_vectorize("classify.tif", "vector.udbx", None, 50.0, 0.5)
 Q1: 运行提示无法导入依赖模块？
 A1: 确保 config.json 配置正确，相关依赖脚本与主脚本同级目录。
 Q2: 地物分类可识别哪些类别？
-A2: 由 landcover 模型训练标签决定，默认支持建筑、道路、水体三类地物，可自定义类别映射扩展。
+A2: 由 landcover 模型训练标签决定，共 8 类：背景、建筑、耕地、水体、道路、裸土、林地、草地，可自定义类别映射扩展。
 Q3: 矢量化后类别字段为空？
-A3: 代码仅自动创建字段，需通过 SuperMap iDesktop 字段计算器，根据类别编码批量填充中文名称。
+A3: 代码会依据「value」字段的像元编码自动填充中文类别名；若出现「未知」，说明该编码不在 8 类映射中。
 Q4: 矢量化图斑存在大量细碎噪点？
 A4: 运行时配置 --min-area 参数，设置合理最小面积阈值，自动过滤细碎无效图斑。
 ============================================================
 四、文件清单
 ============================================================
-classify+vetorize.py  - 地物分类、栅格矢量化核心脚本
+classify_vectorize.py  - 地物分类、栅格矢量化核心脚本
 本文档                 - 模块独立说明与接口规范文档

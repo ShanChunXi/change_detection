@@ -39,6 +39,22 @@ except ImportError:
     sys.exit(1)
 
 
+# landcover 模型真实类别编码 → 中文名（与 multi_cls_landcover.sdm 定义一致）
+# 0=背景 1=建筑 2=耕地 3=水体 4=道路 5=裸土 6=林地 7=草地
+# 栅格转矢量时背景(0)被当作无值排除，背景像元值可能以 255 出现。
+DEFAULT_CLASS_MAP = {
+    0: "背景",
+    255: "背景",
+    1: "建筑",
+    2: "耕地",
+    3: "水体",
+    4: "道路",
+    5: "裸土",
+    6: "林地",
+    7: "草地",
+}
+
+
 # ============================================================================
 # 1. 地物分类函数
 # ============================================================================
@@ -187,6 +203,21 @@ def run_vectorize(
     if not os.path.exists(input_raster):
         print(f"\n[错误] 栅格不存在: {input_raster}")
         return False
+
+    # 解析类别映射：默认用 landcover 模型内置的 8 类，可用 class_map_json 覆盖。
+    class_map = dict(DEFAULT_CLASS_MAP)
+    if class_map_json:
+        try:
+            _m = json.loads(class_map_json)
+            if isinstance(_m, dict):
+                # JSON 的键是字符串，转成 int（转不了的保留原样）
+                for _k, _v in _m.items():
+                    try:
+                        class_map[int(_k)] = _v
+                    except (ValueError, TypeError):
+                        class_map[_k] = _v
+        except Exception as e:
+            print(f"      [警告] 类别映射 JSON 解析失败，使用默认映射: {e}")
 
     # 确保输出目录存在
     out_dir = os.path.dirname(os.path.abspath(output_vector))
@@ -343,6 +374,23 @@ def run_vectorize(
                 print("      面积字段已填充。")
             except Exception as e:
                 print(f"      填充面积字段失败: {e}")
+            # 填充类别字段：根据「value」字段的像元编码映射为中文类别名（landcover 8 类）。
+            try:
+                rd = vector_ds.get_recordset()
+                rd.move_first()
+                while not rd.is_eof():
+                    try:
+                        val = rd.get_value("value")
+                        name = class_map.get(int(val), "未知") if val is not None else "未知"
+                    except Exception:
+                        name = "未知"
+                    rd.edit()
+                    rd.set_value("category", name)
+                    rd.update()
+                    rd.move_next()
+                print("      类别字段已填充。")
+            except Exception as e:
+                print(f"      填充类别字段失败: {e}")
             print(f"      ✅ 矢量数据集生成成功，记录数: {vector_ds.get_record_count()}")
         else:
             print("      ⚠️ 未找到矢量数据集")

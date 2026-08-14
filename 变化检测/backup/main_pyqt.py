@@ -859,7 +859,7 @@ class MainWindow(QMainWindow):
         title.setObjectName("PageTitle")
         layout.addWidget(title)
 
-        desc = QLabel("对单张遥感影像进行地物分类，提取建筑、道路、水体、植被等地物类型。")
+        desc = QLabel("对单张遥感影像进行地物分类，提取建筑、耕地、水体、道路、裸土、林地、草地等地物类型。")
         desc.setObjectName("PageDesc")
         desc.setWordWrap(True)
         layout.addWidget(desc)

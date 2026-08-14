@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 地物分类 & 栅格转矢量模块
@@ -17,6 +18,13 @@ from typing import Dict, Optional
 
 warnings.filterwarnings("ignore")
 
+# 修复 Windows GBK 控制台下 print 无法编码的字符（✅/² 等）导致 UnicodeEncodeError 崩溃的问题
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(errors="replace")
+    except Exception:
+        pass
+
 # 允许从父目录导入 change_detection 的配置函数
 try:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -29,6 +37,22 @@ try:
 except ImportError:
     print("[错误] 无法导入 change_detection.py，请确保它在同一目录下。")
     sys.exit(1)
+
+
+# landcover 模型真实类别编码 → 中文名（与 multi_cls_landcover.sdm 定义一致）
+# 0=背景 1=建筑 2=耕地 3=水体 4=道路 5=裸土 6=林地 7=草地
+# 栅格转矢量时背景(0)被当作无值排除，背景像元值可能以 255 出现。
+DEFAULT_CLASS_MAP = {
+    0: "背景",
+    255: "背景",
+    1: "建筑",
+    2: "耕地",
+    3: "水体",
+    4: "道路",
+    5: "裸土",
+    6: "林地",
+    7: "草地",
+}
 
 
 # ============================================================================
@@ -87,13 +111,53 @@ def run_classify(
         print("[2/3] 执行分类推理...")
         start_time = datetime.now()
 
-        model.multi_classify_infer(
-            input_data=input_image,
-            out_data=output_raster,
-            out_dataset_name="classify_result",
-            offset=offset,
-            result_type="grid",
-        )
+        # 分类结果是栅格（grid），需先写入临时 UDBX，再导出为 GeoTIFF。
+        # 若直接把 .tif 路径传给 out_data，SuperMap 会把它当成数据源目录，
+        # 在 classify.tif/ 文件夹里生成 classify_result.tif，造成输出路径混乱。
+        tmp_udbx = os.path.splitext(output_raster)[0] + ".udbx"
+        for _ext in ("", ".udbx", ".udd"):
+            _p = tmp_udbx + _ext
+            if os.path.exists(_p):
+                try:
+                    os.remove(_p)
+                except Exception:
+                    pass
+
+        try:
+            model.multi_classify_infer(
+                input_data=input_image,
+                out_data=tmp_udbx,
+                out_dataset_name="classify_result",
+                offset=offset,
+                result_type="grid",
+            )
+        except PermissionError as _pe:
+            # SuperMap 清理临时文件夹失败，但结果已写入临时 UDBX
+            if not os.path.exists(tmp_udbx):
+                raise
+            print(f"      推理完成（临时目录清理失败，可忽略）: {_pe}")
+
+        print("      正在导出为 GeoTIFF...")
+        from iobjectspy import conversion, DatasourceConnectionInfo, Workspace
+        _ws = Workspace()
+        try:
+            _conn = DatasourceConnectionInfo()
+            _conn.set_server(tmp_udbx)
+            _conn.set_driver("UDBX")
+            _ds = _ws.open_datasource(_conn)
+            _dt = _ds["classify_result"]
+            conversion.export_to_tif(_dt, output_raster)
+        finally:
+            _ws.close()
+
+        # 清理临时 UDBX
+        for _ext in ("", ".udbx", ".udd"):
+            _p = tmp_udbx + _ext
+            if os.path.exists(_p):
+                try:
+                    os.remove(_p)
+                except Exception:
+                    pass
 
         elapsed = (datetime.now() - start_time).total_seconds()
         print(f"      耗时: {elapsed:.1f} 秒")
@@ -107,6 +171,14 @@ def run_classify(
 
     except RuntimeError as e:
         print(f"\n[错误] 推理运行时错误: {e}")
+        return False
+    except PermissionError as e:
+        # SuperMap 在结果写出后清理临时文件夹可能抛 PermissionError（临时 tif 仍被占用），
+        # 此时结果其实已生成，按成功处理。
+        if os.path.exists(output_raster):
+            print(f"\n[提示] 结果已写出（SuperMap 临时目录清理失败，可忽略）: {e}")
+            return True
+        print(f"\n[错误] {type(e).__name__}: {e}")
         return False
     except Exception as e:
         print(f"\n[错误] {type(e).__name__}: {e}")
@@ -131,6 +203,21 @@ def run_vectorize(
     if not os.path.exists(input_raster):
         print(f"\n[错误] 栅格不存在: {input_raster}")
         return False
+
+    # 解析类别映射：默认用 landcover 模型内置的 8 类，可用 class_map_json 覆盖。
+    class_map = dict(DEFAULT_CLASS_MAP)
+    if class_map_json:
+        try:
+            _m = json.loads(class_map_json)
+            if isinstance(_m, dict):
+                # JSON 的键是字符串，转成 int（转不了的保留原样）
+                for _k, _v in _m.items():
+                    try:
+                        class_map[int(_k)] = _v
+                    except (ValueError, TypeError):
+                        class_map[_k] = _v
+        except Exception as e:
+            print(f"      [警告] 类别映射 JSON 解析失败，使用默认映射: {e}")
 
     # 确保输出目录存在
     out_dir = os.path.dirname(os.path.abspath(output_vector))
@@ -158,7 +245,7 @@ def run_vectorize(
             Workspace, DatasourceConnectionInfo,
             conversion, DatasetType, analyst
         )
-        from iobjectspy import FieldInfo, DatasetVector
+        from iobjectspy import FieldInfo, DatasetVector, FieldType
 
         print()
         print("=" * 60)
@@ -221,26 +308,13 @@ def run_vectorize(
         # ================================================================
         print("[4/4] 执行栅格转矢量...")
 
-        # 打印栅格字段信息（调试用）
-        try:
-            field_infos = grid_ds.get_field_infos()
-            field_names = [f.name for f in field_infos]
-            print(f"      栅格字段: {field_names}")
-            # 自动检测可能的分类字段名
-            possible_fields = ['value', 'grid_value', 'code', 'class', '类别', '分类']
-            auto_field = None
-            for f in possible_fields:
-                if f in field_names:
-                    auto_field = f
-                    break
-            if auto_field:
-                print(f"      自动识别字段: {auto_field}")
-        except Exception as e:
-            print(f"      无法读取字段信息: {e}")
+        # 栅格为 DatasetImage/Grid，没有矢量意义的字段列表；值字段固定用 "value"。
+        print("      值字段: value（分类栅格像元值）")
 
-        # 调用 analyst.raster_to_vector（移除错误的 value_field 参数）
+        # 调用 analyst.raster_to_vector（value_field 为必填参数，命名输出矢量中存储栅格值的字段）
         analyst.raster_to_vector(
             input_data=grid_ds,
+            value_field="value",
             out_dataset_type=DatasetType.REGION,
             back_or_no_value=0,
             is_thin_raster=True,
@@ -252,26 +326,71 @@ def run_vectorize(
         )
         print("      矢量化完成")
 
+        # 先关闭输出工作空间让结果落盘，再重新打开添加字段。
+        # 直接在 create_datasource 返回的 out_ds 上 create_field 有时不生效，重开最稳妥。
+        out_workspace.close()
+
+        out_workspace = Workspace()
+        out_conn2 = DatasourceConnectionInfo()
+        out_conn2.set_server(output_vector)
+        out_conn2.set_driver("UDBX")
+        out_ds2 = out_workspace.open_datasource(out_conn2)
+
         # 检查结果
         vector_ds = None
-        for d in out_ds.datasets:
+        for d in out_ds2.datasets:
             if isinstance(d, DatasetVector):
                 vector_ds = d
                 break
 
         if vector_ds is not None:
+            # SuperMap 字段名只允许字母/数字/下划线，中文字段名会被拒绝，
+            # 因此用英文名 + 中文别名（caption）来承载「类别」「面积」。
+            # is_available_field_name(name) 在名字「可用（未被占用）」时返回 True，
+            # 因此要在为 True 时才创建字段（之前的 `not` 逻辑写反了，导致字段从未创建）。
             try:
-                if not vector_ds.is_available_field_name("类别"):
-                    vector_ds.create_field(FieldInfo("类别", "TEXT", 20))
-                    print("      已添加「类别」字段。")
-            except:
-                pass
+                if vector_ds.is_available_field_name("category"):
+                    vector_ds.create_field(FieldInfo("category", FieldType.WTEXT, 20, caption="类别"))
+                    print("      已添加「类别(category)」字段。")
+            except Exception as e:
+                print(f"      添加类别字段失败: {e}")
             try:
-                if not vector_ds.is_available_field_name("面积"):
-                    vector_ds.create_field(FieldInfo("面积", "DOUBLE", 15, 2))
-                    print("      已添加「面积」字段。")
-            except:
-                pass
+                if vector_ds.is_available_field_name("area_m2"):
+                    vector_ds.create_field(FieldInfo("area_m2", FieldType.DOUBLE, caption="面积"))
+                    print("      已添加「面积(area_m2)」字段。")
+            except Exception as e:
+                print(f"      添加面积字段失败: {e}")
+            # 填充面积字段（几何面积）。编辑记录需先 rd.edit() 进入编辑态，再 set_value + update。
+            try:
+                rd = vector_ds.get_recordset()
+                rd.move_first()
+                while not rd.is_eof():
+                    g = rd.get_geometry()
+                    if g is not None and hasattr(g, "area"):
+                        rd.edit()
+                        rd.set_value("area_m2", g.area)
+                        rd.update()
+                    rd.move_next()
+                print("      面积字段已填充。")
+            except Exception as e:
+                print(f"      填充面积字段失败: {e}")
+            # 填充类别字段：根据「value」字段的像元编码映射为中文类别名（landcover 8 类）。
+            try:
+                rd = vector_ds.get_recordset()
+                rd.move_first()
+                while not rd.is_eof():
+                    try:
+                        val = rd.get_value("value")
+                        name = class_map.get(int(val), "未知") if val is not None else "未知"
+                    except Exception:
+                        name = "未知"
+                    rd.edit()
+                    rd.set_value("category", name)
+                    rd.update()
+                    rd.move_next()
+                print("      类别字段已填充。")
+            except Exception as e:
+                print(f"      填充类别字段失败: {e}")
             print(f"      ✅ 矢量数据集生成成功，记录数: {vector_ds.get_record_count()}")
         else:
             print("      ⚠️ 未找到矢量数据集")
